@@ -1,0 +1,20 @@
+{
+  "name": "matchplay-live-tests",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Deploy script and live Studionet test run for the Matchplay intelligent contract",
+  "scripts": {
+    "keys": "node scripts/keys.mjs",
+    "deploy": "node scripts/deploy.mjs",
+    "e2e": "node scripts/e2e.mjs",
+    "e2e:plan": "node scripts/e2e.mjs --dry-run",
+    "rehearse": "bash rehearsal/run.sh"
+  },
+  "dependencies": {
+    "genlayer-js": "1.1.8"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

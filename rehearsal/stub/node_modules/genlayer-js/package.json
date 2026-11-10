@@ -1,0 +1,6 @@
+{
+  "name": "genlayer-js",
+  "version": "0.0.0-rehearsal",
+  "type": "module",
+  "exports": { ".": "./index.js", "./chains": "./chains.js" }
+}
