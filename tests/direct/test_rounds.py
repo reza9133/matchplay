@@ -198,6 +198,58 @@ def test_enter_refuses_a_copied_pitch(h):
         h.refuse("already used", P.e[1], "enter", rid, "Copy", copy, "", value=MILLI)
 
 
+def test_entries_in_other_scripts_can_share_a_round(h):
+    rid = open_round(h, min_entries=3, max_entries=8)
+    for i, (name, pitch) in enumerate(SCRIPT_PITCHES.items()):
+        h.join(rid, P.e[i], name=f"Entry {name}", pitch=pitch)
+    r = h.rnd(rid)
+    assert r["entry_count"] == len(SCRIPT_PITCHES) == 8
+    assert [e["pitch"] for e in r["entries"]] == list(SCRIPT_PITCHES.values())  # kept as written
+
+
+def test_a_copied_pitch_in_another_script_is_refused(h):
+    rid = open_round(h, max_entries=5)
+    text = SCRIPT_PITCHES["cyrillic"]
+    h.join(rid, P.e[0], pitch=text)
+    for copy in (text, text.upper(), text.replace(" ", "   ") + "!!!", text.replace(" ", ", ")):
+        h.refuse("already used", P.e[1], "enter", rid, "Copy", copy, "", value=MILLI)
+    h.join(rid, P.e[1], pitch=SCRIPT_PITCHES["cyrillic_2"])  # a different pitch in the same script is fine
+    assert h.rnd(rid)["entry_count"] == 2
+
+
+def test_a_copy_in_full_width_or_styled_letters_is_still_a_copy(h):
+    rid = open_round(h, max_entries=5)
+    text = "We build a free tool that finds the source of every quote on the web."
+    h.join(rid, P.e[0], pitch=text)
+    h.refuse("already used", P.e[1], "enter", rid, "Copy", wide(text), "", value=MILLI)
+    h.refuse("already used", P.e[1], "enter", rid, "Copy", bold(text), "", value=MILLI)
+
+
+@pytest.mark.parametrize(
+    "pitch",
+    ["!" * 45, "-" * 40 + " " + "." * 20, "\U0001f600" * 50, "a" * 19 + "!" * 30, "1 2 3 4 5 6 7 8 9 ! ! ! ! ! ! ! ! ! ! ! ! !"],
+)
+def test_a_pitch_without_enough_letters_is_refused(h, pitch):
+    rid = open_round(h)
+    assert len(pitch) >= 40  # long enough: only the letters are missing
+    h.refuse("at least 20 letters or digits", P.e[0], "enter", rid, "Name", pitch, "", value=MILLI)
+    assert h.rnd(rid)["entry_count"] == 0
+
+
+def test_a_pitch_with_exactly_twenty_letters_is_enough(h):
+    rid = open_round(h)
+    h.join(rid, P.e[0], pitch="a" * 20 + "!" * 30)
+    assert h.rnd(rid)["entry_count"] == 1
+
+
+def test_enter_takes_a_link_with_an_upper_case_scheme(h):
+    rid = open_round(h, max_entries=5)
+    h.join(rid, P.e[0], url="HTTPS://docs.example.org/alpha")
+    assert h.rnd(rid)["entries"][0]["url"] == "https://docs.example.org/alpha"  # stored with the scheme in lower case
+    h.refuse("already backs another entry", P.e[1], "enter", rid, "Other", h.pitch(1), "HTTP://DOCS.example.org/alpha", value=MILLI)
+    h.refuse("single public http(s) link", P.e[1], "enter", rid, "Other", h.pitch(1), "FTP://docs.example.org/alpha", value=MILLI)
+
+
 def test_enter_state_and_time_rules(h):
     rid = open_round(h, entry_window=600, max_entries=3)
     h.refuse("The host cannot enter", P.host, "enter", rid, "Host", h.pitch(0), "", value=MILLI)

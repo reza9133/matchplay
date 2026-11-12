@@ -5,7 +5,7 @@
 #   bash rehearsal/run.sh --only tournament,strike
 #   REHEARSAL_SPEED=60 bash rehearsal/run.sh --with-void    the clock runs 60x faster (the default is 120)
 #   FINALITY_DELAY=90 bash rehearsal/run.sh                 transfers only arrive 90 chain-seconds after the claim
-#   JUDGE=biased | noisy | broken  bash rehearsal/run.sh    how the scripted judge behaves (default: honest)
+#   JUDGE=biased | noisy | flaky   bash rehearsal/run.sh    how the scripted judge behaves (default: honest)
 set -e
 here="$(cd "$(dirname "$0")/.." && pwd)"
 work="$here/.rehearsal-tmp"

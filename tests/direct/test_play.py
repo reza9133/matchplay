@@ -274,6 +274,163 @@ def test_an_innocent_page_about_prompts_is_not_flagged(h):
     assert h.match(rid, 0)["review"]["flagged"] == [0, 0]
 
 
+# ---- a strike counts for the whole round ----------------------------------------------------------------------------
+
+LATE = [EVIDENCE_A, EVIDENCE_B, EVIDENCE_C]
+
+
+def serve_q(h, **marks):
+    """Give each evidence page a quality marker: serve_q(h, A=95, B=80) sets the pages of entries A and B."""
+    urls = {"A": EVIDENCE_A, "B": EVIDENCE_B, "C": EVIDENCE_C, "D": EVIDENCE_D}
+    for key, q in marks.items():
+        h.web.serve(urls[key], page(f"Q={q} " + GOOD_TEXT))
+
+
+def test_a_late_strike_counts_for_the_matches_played_before_it(h):
+    """A beats B, then A's page turns into steering text. A is out of the whole round: the match against B is decided
+    again as if A had been flagged from the start, so B is not worse off because the strike came a match later."""
+    serve_q(h, A=95, B=80, C=40)
+    rid = go(h, [60, 60, 60], urls=LATE, min_fit=30)
+    h.play(rid, offset=100)  # A against B: A wins
+    assert h.match(rid, 0)["outcome"] == A_WINS
+    h.web.serve(EVIDENCE_A, STEER_PAGE)
+    h.play(rid, offset=101)  # A against C: A is flagged now
+    m0, m1 = h.match(rid, 0), h.match(rid, 1)
+    assert m0["outcome"] == B_WINS  # B clears the bar (80 against 30) and A cannot
+    assert m0["review"]["outcome"] == B_WINS and m0["review"]["rescored"] == {"was": A_WINS, "flagged": [1, 0], "at": T0 + 101}
+    assert m0["review"]["fit"] == [95, 80] and m0["review"]["win"] == ["A", "A"]  # what the judge said is kept
+    assert (m0["state"], m0["by"]) == (M_PLAYED, BY_JUDGE)
+    assert m1["outcome"] == B_WINS and "rescored" not in m1["review"]  # the match of the strike itself is decided once
+    assert h.stats()["flagged"] == 1 and h.rnd(rid)["judged"] == 2
+    h.play(rid, offset=102)  # B against C
+    h.finalize(rid, offset=300)
+    pts, paid, forfeits = oracle(h, rid)
+    assert pts == [0, 4, 2] and forfeits == MILLI
+    r = h.rnd(rid)
+    unit = int(r["price_per_point"])
+    assert [e["points"] for e in r["entries"]] == [0, 4, 2] and [e["rank"] for e in r["entries"]] == [0, 1, 2]
+    assert h.credit(P.e[1]) == 4 * unit + MILLI and h.credit(P.e[2]) == 2 * unit + MILLI and h.credit(P.e[0]) == 0
+    assert h.books()["balanced"] and h.view("audit_books")["ok"]
+
+
+def test_a_rival_that_did_not_clear_the_bar_earns_nothing_from_a_late_strike(h):
+    serve_q(h, A=95, B=25, C=60)  # B is below the bar of 30
+    rid = go(h, [60, 60, 60], urls=LATE, min_fit=30)
+    h.play(rid, offset=100)
+    assert h.match(rid, 0)["outcome"] == A_WINS  # A clears the bar, B does not
+    h.web.serve(EVIDENCE_A, STEER_PAGE)
+    h.play(rid, offset=101)
+    m0 = h.match(rid, 0)
+    assert m0["outcome"] == NEITHER and m0["review"]["rescored"]["was"] == A_WINS  # nobody clears the bar in that match now
+    h.play(rid, offset=102)
+    h.finalize(rid, offset=300)
+    pts, _, _ = oracle(h, rid)
+    assert pts == [0, 0, 4]
+
+
+def test_an_earlier_tie_with_the_flagged_entry_becomes_a_win_for_the_rival(h):
+    h.model.gap = 100  # the judge cannot separate anybody: every clean match is a tie
+    serve_q(h, A=70, B=70)
+    rid = go(h, [60, 60, 60], urls=LATE, min_fit=30)
+    h.play(rid, offset=100)
+    assert h.match(rid, 0)["outcome"] == TIE
+    h.web.serve(EVIDENCE_A, STEER_PAGE)
+    h.play(rid, offset=101)
+    m0 = h.match(rid, 0)
+    assert m0["outcome"] == B_WINS and m0["review"]["rescored"]["was"] == TIE
+
+
+def test_matches_that_were_voided_are_not_decided_again(h):
+    h.web.serve(EVIDENCE_B, "", 404)  # B's page never loads
+    rid = go(h, [60, 60, 60], urls=LATE, min_fit=30)
+    for t in (100, 230, 360):
+        h.play(rid, offset=t)
+    m0 = h.match(rid, 0)
+    assert (m0["by"], m0["outcome"], m0["tries"]) == (BY_VOID, NEITHER, 3)
+    h.web.serve(EVIDENCE_A, STEER_PAGE)
+    h.play(rid, offset=361)
+    assert h.rnd(rid)["entries"][0]["flagged"] is True
+    m0 = h.match(rid, 0)
+    assert (m0["by"], m0["outcome"]) == (BY_VOID, NEITHER) and "rescored" not in m0["review"]
+
+
+def test_two_flagged_entries_leave_their_match_with_nobody(h):
+    serve_q(h, A=95, B=80, C=40)
+    rid = go(h, [60, 60, 60], urls=LATE, min_fit=30)
+    h.play(rid, offset=100)  # A beats B
+    h.web.serve(EVIDENCE_A, STEER_PAGE)
+    h.play(rid, offset=101)  # A is flagged: the first match goes to B
+    assert h.match(rid, 0)["outcome"] == B_WINS
+    h.web.serve(EVIDENCE_B, STEER_PAGE)
+    h.play(rid, offset=102)  # B is flagged too
+    m0 = h.match(rid, 0)
+    assert m0["outcome"] == NEITHER
+    assert m0["review"]["rescored"] == {"was": A_WINS, "flagged": [1, 1], "at": T0 + 102}  # "was" is what the judge said
+    h.finalize(rid, offset=300)
+    pts, paid, forfeits = oracle(h, rid)
+    assert pts == [0, 0, 4] and forfeits == 2 * MILLI
+    assert h.books()["balanced"] and h.view("audit_books")["ok"]
+
+
+def test_a_strike_in_the_last_match_of_an_entry_decides_all_its_earlier_matches_again(h):
+    serve_q(h, A=95, B=70, C=60, D=50)
+    rid = go(h, [60] * 4, urls=[EVIDENCE_A, EVIDENCE_B, EVIDENCE_C, EVIDENCE_D], min_fit=30)
+    h.play(rid, offset=100)  # A against B
+    h.play(rid, offset=101)  # A against C
+    assert [h.match(rid, i)["outcome"] for i in (0, 1)] == [A_WINS, A_WINS]
+    h.web.serve(EVIDENCE_A, STEER_PAGE)
+    h.play(rid, offset=102)  # A against D: flagged
+    assert [h.match(rid, i)["outcome"] for i in (0, 1, 2)] == [B_WINS, B_WINS, B_WINS]
+    for k in range(3):
+        h.play(rid, offset=103 + k)  # B against C, B against D, C against D
+    h.finalize(rid, offset=300)
+    pts, paid, forfeits = oracle(h, rid)
+    assert pts == [0, 6, 4, 2]
+    assert pts[1] == 2 * 3  # the most an entry can earn: two points from each of its three rivals
+    r = h.rnd(rid)
+    assert int(r["paid_out"]) == 12 * int(r["price_per_point"]) and h.books()["balanced"]
+
+
+def test_a_strike_found_while_the_other_page_is_unreadable_is_counted_back_too(h):
+    serve_q(h, A=95, B=80)
+    rid = go(h, [60, 60, 60], urls=LATE, min_fit=30)
+    h.play(rid, offset=100)  # A beats B
+    h.web.serve(EVIDENCE_A, STEER_PAGE)
+    h.web.serve(EVIDENCE_C, "", 404)
+    h.play(rid, offset=101)  # A against C: C cannot be read, A is flagged; the match stays open
+    assert h.match(rid, 1)["state"] == M_PENDING and h.match(rid, 1)["tries"] == 1
+    assert h.rnd(rid)["entries"][0]["flagged"] is True
+    assert h.match(rid, 0)["outcome"] == B_WINS
+
+
+def test_without_a_strike_no_match_is_ever_decided_again(h):
+    serve_q(h, A=95, B=80, C=40)
+    rid = go(h, [60, 60, 60], urls=LATE, min_fit=30)
+    h.play_all(rid, start_offset=100)
+    for i in range(3):
+        assert "rescored" not in h.match(rid, i)["review"]
+    assert [h.match(rid, i)["outcome"] for i in range(3)] == [A_WINS, A_WINS, A_WINS]
+
+
+# ---- what the judge is asked and how its answer is read ---------------------------------------------------------------
+
+
+def test_the_reply_instruction_names_the_shape_without_values_to_copy(h):
+    rid = go(h, [90, 70, 50])
+    h.play(rid, offset=100)
+    p = h.model.prompts[0]
+    assert '"winner": "1" | "2" | "tie"' in p and '"fit_1": <integer 0-100>' in p and '"fit_2": <integer 0-100>' in p
+    assert '"fit_1": 50' not in p and '"winner": "tie"' not in p  # a plausible example would be copied
+
+
+def test_a_fit_written_as_a_percentage_or_out_of_a_hundred_is_understood(h):
+    h.model.raw = {"winner": "1", "fit_1": "85%", "fit_2": "40/100", "reason": "ok"}
+    rid = go(h, [60, 60, 60])
+    h.play(rid, offset=100)
+    m = h.match(rid, 0)
+    assert m["by"] == BY_JUDGE and m["review"]["fit"] == [40, 40]  # reading 1 gave A 85 and B 40, reading 2 the other way
+
+
 # ---- unreadable pages -----------------------------------------------------------------------------------------------
 
 
@@ -395,6 +552,28 @@ def test_a_model_that_raises_changes_nothing_and_the_match_can_be_retried(h):
     h.model.fail = None
     h.play(rid, offset=101)
     assert h.match(rid, 0)["outcome"] == A_WINS
+
+
+def test_a_match_the_model_cannot_answer_stalls_the_schedule_but_the_round_still_settles(h):
+    """A failed call changes nothing, so it cannot be counted: a pitch that makes the reply unusable on every try keeps
+    the head of the schedule blocked until the playing time ends. Nothing is lost: the unplayed matches earn nothing and
+    the round settles as usual."""
+    h.model.raw = "not json at all"
+    rid = go(h, [90, 60, 30], prize=12 * MILLI, play_window=3600)
+    for k in range(3):
+        at(h.vm, 100 + 200 * k)
+        with h.vm.expect_revert():
+            act(h.vm, P.runner)
+            h.c.play_next(rid)
+        h.vm.value = 0
+    r = h.rnd(rid)
+    assert r["next_match"] == 0 and all(m["state"] == M_PENDING and m["tries"] == 0 for m in r["matches"])
+    h.refuse("still being played", P.host, "finalize_round", rid)
+    h.finalize(rid, offset=50 + 3600)
+    r = h.rnd(rid)
+    assert r["state"] == DONE and r["timeouts"] == 3 and all(e["points"] == 0 for e in r["entries"])
+    assert h.credit(P.host) == 12 * MILLI and all(h.credit(e) == MILLI for e in P.e[:3])
+    assert h.books()["balanced"] and h.view("audit_books")["ok"]
 
 
 def test_a_json_answer_wrapped_in_a_code_fence_is_understood(h):

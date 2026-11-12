@@ -138,7 +138,7 @@ class World:
             owed = [a for a in EVERYONE if h.credit(a)]
             return "claim", rng.choice(owed if owed and rng.random() < 0.9 else EVERYONE), (), 0
         # change the world: a page, the model, the chain's delivery mode
-        what = rng.choice(["page", "page", "page", "bias", "gap", "gap", "reset", "reset", "delay", "deliver", "junk", "junk_off", "junk_off"])
+        what = rng.choice(["page", "page", "page", "poison", "poison", "bias", "gap", "gap", "reset", "reset", "delay", "deliver", "junk", "junk_off", "junk_off"])
         if what == "page":
             url = rng.choice([EVIDENCE_A, EVIDENCE_B, EVIDENCE_C, EVIDENCE_D])
             kind = rng.choice(["clean", "clean", "steer", "steer", "thin", "404"])
@@ -146,6 +146,12 @@ class World:
                 h.web.serve(url, "", 404)
             else:
                 h.web.serve(url, PAGES[kind])
+        elif what == "poison":
+            # the page of an entry that has already earned points turns into steering text: a late strike at its next match
+            live = [r for r in rows if r["state"] == PLAYING and r["judged"] >= 1]
+            urls = [e["url"] for r in live for e in r["entries"] if e["url"] and not e["flagged"] and e["points"] > 0]
+            if urls:
+                h.web.serve(rng.choice(urls), PAGES["steer"])
         elif what == "bias":
             h.model.bias = rng.choice([None, "first", "second"])
         elif what == "gap":
@@ -233,6 +239,7 @@ class World:
                 assert [m["index"] for m in played] == list(range(len(played)))  # played in the fixed order, no gaps
                 assert r["judged"] + r["voided"] + r["timeouts"] == len(played)
                 assert int(r["price_per_point"]) * 2 * r["match_count"] <= int(r["prize"])
+                self.check_flagged_matches(r)
             if r["state"] == PLAYING:
                 assert r["next_match"] == len([m for m in r["matches"] if m["state"] == M_PLAYED])
             if r["state"] == DONE:
@@ -241,6 +248,25 @@ class World:
             if r["state"] == CANCELLED:
                 assert int(r["returned"]) == int(r["prize"])
         assert held == locked
+
+    def check_flagged_matches(self, r):
+        """A strike counts for the whole round: in every match the judge decided, a flagged entry earns nothing, and
+        its rival earns two points exactly when it cleared the bar (by the fits stored with the match)."""
+        flagged = {e["index"] for e in r["entries"] if e["flagged"]}
+        for m in r["matches"]:
+            if m["state"] != M_PLAYED or m["by"] != BY_JUDGE:
+                continue
+            fa, fb = m["a"] in flagged, m["b"] in flagged
+            if not (fa or fb):
+                continue
+            pa, pb = POINTS[m["outcome"]]
+            fit = m["review"]["fit"]
+            if fa and fb:
+                assert (pa, pb) == (0, 0), m
+            elif fa:
+                assert pa == 0 and pb == (2 if fit[1] >= r["min_fit"] else 0), m
+            else:
+                assert pb == 0 and pa == (2 if fit[0] >= r["min_fit"] else 0), m
 
     def check_done(self, r):
         n = len(r["entries"])
@@ -294,7 +320,10 @@ class World:
         assert Chain.total() == int(s["deposited"]) == int(s["claimed"]) and Chain.native() == 0
 
 
-COVERAGE = {"walks": 0, "done": 0, "cancelled": 0, "voided": 0, "flagged": 0, "claims": 0, "timeouts": 0, "ties": 0, "wins": 0, "none": 0}
+COVERAGE = {
+    "walks": 0, "done": 0, "cancelled": 0, "voided": 0, "flagged": 0, "claims": 0, "timeouts": 0, "ties": 0, "wins": 0, "none": 0,
+    "rescored": 0,
+}
 
 
 def note_coverage(h):
@@ -306,6 +335,8 @@ def note_coverage(h):
         for m in h.rnd(i)["matches"]:
             if m["by"] == BY_JUDGE:
                 COVERAGE["ties" if m["outcome"] == TIE else "wins" if m["outcome"] != NEITHER else "none"] += 1
+                if "rescored" in m["review"]:
+                    COVERAGE["rescored"] += 1
 
 
 @pytest.mark.parametrize("seed", SEEDS)
@@ -320,9 +351,9 @@ def test_random_walk(h, seed):
 
 def test_the_walks_reach_every_state_and_outcome():
     """A check on the fuzzer itself: across all the walks above there must be finished and cancelled rounds, voided
-    matches, flagged entries, claims, timeouts and every kind of match result, or the invariants would be checked on
-    empty ground. (It reads what the walks recorded, so it is skipped when run on its own.)"""
+    matches, flagged entries, matches decided again after a late strike, claims, timeouts and every kind of match
+    result, or the invariants would be checked on empty ground. (It reads what the walks recorded, so it is skipped when run on its own.)"""
     if COVERAGE["walks"] < len(SEEDS):
         pytest.skip("run the whole file to collect the coverage of all walks")
-    for key in ("done", "cancelled", "voided", "flagged", "claims", "timeouts", "ties", "wins", "none"):
+    for key in ("done", "cancelled", "voided", "flagged", "claims", "timeouts", "ties", "wins", "none", "rescored"):
         assert COVERAGE[key] > 0, "coverage " + repr(sorted(COVERAGE.items()))

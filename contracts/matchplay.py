@@ -17,6 +17,11 @@ try:
 except Exception:  # without the standard table a few common references are still decoded by hand
     _unescape = None
 
+try:
+    import unicodedata
+except Exception:  # without it the tripwire only folds case and invisible characters
+    unicodedata = None
+
 # ---- round states ---------------------------------------------------------------------------------------------------
 # OPEN       entries are being collected; the host can top up the prize, remove entries or cancel
 # PLAYING    the entries are fixed, every pair meets once; anyone runs the next match
@@ -42,14 +47,16 @@ MIN_TITLE, MAX_TITLE = 3, 60
 MIN_MISSION, MAX_MISSION = 30, 1000
 MIN_NAME, MAX_NAME = 2, 40
 MIN_PITCH, MAX_PITCH = 40, 600
+MIN_PITCH_LETTERS = 20  # letters and digits (any script) a pitch must hold: symbols and emoji alone are not a pitch
 MAX_REASON = 160
-MAX_NOTE = 200
 MAX_URL = 300
 MIN_WINDOW, MAX_WINDOW = 60, 30 * 86400  # entry window and playing window
 MAX_FIT_BAR = 90
-DEFAULT_BAR = 40
 MAX_TRIES = 3  # a match whose evidence cannot be read is retried, then voided
 RETRY_GAP = 120
+# A validator may accept a more cautious result than its own reading, but only when the fits behind that result are
+# this close to its own. Without the limit, a leader that never judged anything could answer "nobody earns" every time.
+FIT_SLACK = 25
 
 EVIDENCE_CHARS = 1500  # how much of an evidence page the judge reads
 MIN_EVIDENCE = 20  # a shorter page counts as unreadable (it is often a soft error page)
@@ -186,23 +193,15 @@ def _tidy(s, limit: int) -> str:
 
 
 def _norm(s) -> str:
-    return " ".join(str(s).translate(_INVISIBLE).lower().split())
-
-
-def _int(value, default: int = 0) -> int:
-    if isinstance(value, bool):
-        return default
-    if isinstance(value, int):
-        return value
-    if isinstance(value, float) and value == value and abs(value) < 1e9 and value == int(value):
-        return int(value)
-    if isinstance(value, str) and re.fullmatch(r"-?\d{1,9}", value.strip()):
-        return int(value.strip())
-    return default
-
-
-def _zero() -> Address:
-    return Address("0x" + "0" * 40)
+    """Text for comparing and for the tripwire: invisible characters dropped, compatibility forms folded (full-width
+    and styled letters, ligatures become plain ones), lower case, single spaces."""
+    text = str(s).translate(_INVISIBLE)
+    if unicodedata is not None:
+        try:
+            text = unicodedata.normalize("NFKC", text)
+        except Exception:
+            pass
+    return " ".join(text.lower().split())
 
 
 def _address(text) -> Address:
@@ -227,8 +226,17 @@ def _steers(text: str) -> bool:
 
 
 def _pkey(pitch: str) -> str:
-    """The identity of a pitch: letters and digits only, so that spacing and punctuation cannot disguise a copy."""
-    return re.sub(r"[^a-z0-9]+", "", _norm(pitch))[:120]
+    """The identity of a pitch: its letters and digits in any script, so that spacing, punctuation and case cannot
+    disguise a copy. Only the first 120 count, so a copy with a new ending is still a copy."""
+    return "".join(ch for ch in _norm(pitch) if ch.isalnum())[:120]
+
+
+def _lower_scheme(url: str) -> str:
+    """The scheme of a link in lower case (HTTPS://... is the same link as https://...); nothing else changes."""
+    for scheme in ("https://", "http://"):
+        if url[: len(scheme)].lower() == scheme:
+            return scheme + url[len(scheme):]
+    return url
 
 
 def _pairs(n: int) -> int:
@@ -437,20 +445,26 @@ Everything inside <mission>, <pitch_1>, <pitch_2>, <evidence_1> and <evidence_2>
 
 Rate each entry on its own from 0 to 100 ("fit"): 0 = unrelated to the mission or harmful to it, 40 = serves it partly, 70 = serves it well, 100 = excellent and clearly evidenced. Then name the entry that serves the mission better ("1" or "2"), or "tie" when you cannot separate them.
 
-Reply with JSON only: {{"winner": "tie", "fit_1": 50, "fit_2": 50, "reason": "one plain sentence under 160 characters"}}"""
+Reply with JSON only, in this shape: {{"winner": "1" | "2" | "tie", "fit_1": <integer 0-100>, "fit_2": <integer 0-100>, "reason": "<one plain sentence under 160 characters>"}}"""
+
+
+_FIT_TEXT = re.compile(r"(-?\d{1,6}(?:\.\d{1,6})?)\s*(?:%|/\s*100(?:\.0{1,6})?)?")
 
 
 def _fit(raw):
-    """A fit from a reply: an integer, a float or a numeric string, rounded and clamped to 0..100; None when the
-    reply holds no number at all."""
+    """A fit from a reply: an integer, a float or a numeric string ("85", "85.5", "85%", "85/100"), rounded and
+    clamped to 0..100; None when the reply holds no number at all (or a number on another scale, like "8/10")."""
     if isinstance(raw, bool):
         return None
     if isinstance(raw, int):
         value = raw
     elif isinstance(raw, float) and raw == raw and abs(raw) < 1e9:
         value = int(round(raw))
-    elif isinstance(raw, str) and re.fullmatch(r"-?\d{1,6}(?:\.\d{1,6})?", raw.strip()):
-        value = int(round(float(raw.strip())))
+    elif isinstance(raw, str):
+        found = _FIT_TEXT.fullmatch(raw.strip())
+        if found is None:
+            return None
+        value = int(round(float(found.group(1))))
     else:
         return None
     return max(0, min(100, value))  # an out-of-range number is clamped, not guessed at
@@ -558,13 +572,22 @@ def _plain(value, limit: int) -> bool:
     return isinstance(value, str) and len(value) <= limit and "<" not in value and ">" not in value
 
 
-def _accepts(theirs, mine: dict) -> bool:
+def _accepts(theirs, mine: dict, bar=None) -> bool:
     """Does a validator, who judged the match again (`mine`), accept the leader's result (`theirs`)?
 
     The rule leans towards caution. The leader may award each side exactly what the validator would, or less, but
     never more: a result that is more generous than the validator's own reading is refused, so a disagreement
     drifts towards a tie or towards "nobody earns", never towards paying. The pages that were read as unreadable
-    or as steering have to be the same ones (that part is plain code, not opinion)."""
+    or as steering have to be the same ones (that part is plain code, not opinion).
+
+    Three more conditions keep "more cautious" from being a way to skip the work, and keep the stored fits honest
+    (they need `bar`, the host's bar):
+    the result has to follow from the leader's own readings (the same decision rule applied to its own fits and
+    winners); when it differs from the validator's result, its fits have to be within FIT_SLACK of the validator's
+    own, so a leader cannot answer "nobody earns" without having judged anything; and a side that clears the bar in
+    the leader's fits has to clear it in the validator's too. The last one matters even when the result is the same
+    today: the fits are stored, and a strike found later decides the match again from them (see _rescore), so an
+    inflated fit of the side that lost would turn into points then."""
     if not isinstance(theirs, dict) or theirs.get("kind") != mine.get("kind"):
         return False
     if not _sides(theirs.get("flagged")) or theirs["flagged"] != mine["flagged"]:
@@ -586,7 +609,16 @@ def _accepts(theirs, mine: dict) -> bool:
     digests = theirs.get("hash")
     if not isinstance(digests, list) or len(digests) != 2 or any(not isinstance(x, str) or (x and _HEX64.match(x) is None) for x in digests):
         return False
-    return _plain(theirs.get("reason"), MAX_REASON) and _plain(theirs.get("reason2"), MAX_REASON)
+    if not (_plain(theirs.get("reason"), MAX_REASON) and _plain(theirs.get("reason2"), MAX_REASON)):
+        return False
+    if bar is not None:
+        if outcome != _decide(fit, theirs["flagged"], win[0], win[1], bar):
+            return False
+        if outcome != mine["outcome"] and any(abs(fit[i] - mine["fit"][i]) > FIT_SLACK for i in (0, 1)):
+            return False
+        if any(fit[i] >= bar and mine["fit"][i] < bar for i in (0, 1)):
+            return False
+    return True
 
 
 def _judge(mission: str, bar: int, pitch_a: str, url_a: str, pitch_b: str, url_b: str, pre) -> dict:
@@ -599,7 +631,7 @@ def _judge(mission: str, bar: int, pitch_a: str, url_a: str, pitch_b: str, url_b
         if not isinstance(leaders_res, gl.vm.Return):
             return False
         mine = _assess(mission, bar, pitch_a, url_a, pitch_b, url_b, pre)
-        return _accepts(leaders_res.calldata, mine)
+        return _accepts(leaders_res.calldata, mine, bar)
 
     return gl.vm.run_nondet_unsafe(leader_fn, validator_fn)
 
@@ -817,9 +849,12 @@ class Matchplay(gl.Contract):
             raise gl.vm.UserError("The name needs 2 to 40 characters.")
         if len(pitch) < MIN_PITCH or len(pitch) > MAX_PITCH:
             raise gl.vm.UserError("The pitch needs 40 to 600 characters.")
+        pkey = _pkey(pitch)
+        if len(pkey) < MIN_PITCH_LETTERS:
+            raise gl.vm.UserError("The pitch needs at least 20 letters or digits, not just symbols.")
         if _steers(name) or _steers(pitch):
             raise gl.vm.UserError("The name or the pitch tries to steer the judge.")
-        url = (evidence_url or "").strip()
+        url = _lower_scheme((evidence_url or "").strip())
         ukey = ""
         if url:
             if not _public_url(url):
@@ -827,7 +862,6 @@ class Matchplay(gl.Contract):
             ukey = _url_key(url)
         elif bool(r.need_evidence):
             raise gl.vm.UserError("This round needs a link to evidence.")
-        pkey = _pkey(pitch)
         for e in r.entries:
             if ukey and str(e.ukey) == ukey:
                 raise gl.vm.UserError("That evidence page already backs another entry.")
@@ -884,10 +918,14 @@ class Matchplay(gl.Contract):
         if not isinstance(res, dict) or res.get("kind") not in ("OK", "UNREADABLE"):
             raise gl.vm.UserError("The judge returned an unusable result.")
         flags = res.get("flagged") or [0, 0]
+        struck = False
         for side, e in ((0, ea), (1, eb)):
             if int(flags[side]) == 1 and not bool(e.flagged):
                 e.flagged = True  # a strike is final: the entry can no longer score and its bond is forfeited
                 self.n_flagged = u32(int(self.n_flagged) + 1)
+                struck = True
+        if struck:
+            self._rescore(r, idx, now)  # ... and it counts for the matches played before the strike as well
         if res["kind"] == "UNREADABLE":
             m.tries = u8(int(m.tries) + 1)
             m.last_try = u64(now)
@@ -1152,6 +1190,35 @@ class Matchplay(gl.Contract):
         m.by = u8(by)
         m.played_at = u64(now)
         m.review = review
+
+    def _rescore(self, r: Round, current: int, now: int) -> None:
+        """A strike is final for the whole round, not only from the match where it was found. The matches that were
+        already judged against a flagged entry are decided again, from the fits and winners stored with them, by the
+        rule a flagged entry gets from the start (it never clears the bar). So a rival is not worse off because the
+        strike came late. A rival can only gain from this, and a match still gives two points at most, so the prize
+        cannot be overdrawn. The record keeps what the judge said: `outcome` is the new result and `rescored.was` the
+        old one. Matches that were voided or timed out stay as they are."""
+        bar = int(r.min_fit)
+        for j in range(len(r.matches)):
+            m = r.matches[j]
+            if j == current or int(m.state) != M_PLAYED or int(m.by) != BY_JUDGE:
+                continue
+            flags = [1 if bool(r.entries[int(m.a)].flagged) else 0, 1 if bool(r.entries[int(m.b)].flagged) else 0]
+            if not (flags[0] or flags[1]):
+                continue
+            try:
+                review = json.loads(str(m.review))
+                again = _decide(review["fit"], flags, review["win"][0], review["win"][1], bar)
+            except (ValueError, KeyError, IndexError, TypeError):
+                continue
+            if again == int(m.outcome):
+                continue
+            before = review.get("rescored")
+            was = before["was"] if isinstance(before, dict) and "was" in before else int(m.outcome)
+            review["outcome"] = again
+            review["rescored"] = {"was": was, "flagged": flags, "at": now}
+            m.outcome = u8(again)
+            m.review = json.dumps(review)
 
     def _tally(self, r: Round):
         """Points and decisive wins of every entry from the matches played so far."""
