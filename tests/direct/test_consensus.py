@@ -60,59 +60,68 @@ def test_the_stored_review_is_the_leaders_result(h):
 
 
 def cautious(leader, fit):
-    """A leader that read both entries lower than the validator did: its "nobody earns" follows from its own fits."""
+    """A leader that read both entries lower than the validator did: its \"nobody earns\" follows from its own fits."""
     return dict(leader, outcome=NEITHER, fit=list(fit))
 
 
-def test_a_validator_accepts_a_more_cautious_leader(h):
-    rid, leader = judged(h, qualities=(45, 42, 50), min_fit=40)  # both entries just above the bar, A wins in both orders
-    assert leader["outcome"] == A_WINS
-    assert validate(h, leader_result=cautious(leader, (38, 37))) is True
+def test_a_validator_refuses_a_more_cautious_leader(h):
+    rid, leader = judged(h, qualities=(45, 42, 50), min_fit=40)  # both entries on the 50 rung, A wins in both orders
+    assert leader["outcome"] == A_WINS and leader["fit"] == [50, 50]
+    assert validate(h) is True
+    assert validate(h, leader_result=cautious(leader, (25, 25))) is False  # coherent, but different from the reading
+    assert validate(h, leader_result=cautious(leader, (0, 0))) is False
 
 
 def test_a_validator_refuses_a_more_generous_leader(h):
     h.model.gap = 100
     rid, leader = judged(h)  # the validator will see TIE
     assert leader["outcome"] == TIE
-    assert validate(h, leader_result=dict(leader, outcome=A_WINS, win=["A", "A"])) is False  # coherent, but more generous
+    assert validate(h, leader_result=dict(leader, outcome=A_WINS, win=["A", "A"])) is False
     assert validate(h, leader_result=dict(leader, outcome=B_WINS, win=["B", "B"])) is False
-    assert validate(h, leader_result=dict(leader, outcome=A_WINS)) is False  # (and it does not follow from its winners)
+    assert validate(h, leader_result=dict(leader, outcome=A_WINS)) is False
     assert validate(h, leader_result=dict(leader, outcome=TIE)) is True
 
 
 def test_a_leader_that_never_judged_anything_is_refused(h):
-    rid, leader = judged(h)  # the validator will see A_WINS with fits 90 and 70
+    rid, leader = judged(h)  # the validator will see A_WINS with fits 100 and 75
     lazy = dict(leader, outcome=NEITHER, fit=[0, 0], win=["T", "T"], reason="", reason2="")
     assert validate(h, leader_result=lazy) is False
-    assert validate(h, leader_result=dict(lazy, fit=[30, 30])) is False  # it follows from those fits, but they are far off
+    assert validate(h, leader_result=dict(lazy, fit=[25, 25])) is False
 
 
 def test_a_result_that_does_not_follow_from_its_own_fits_is_refused(h):
-    rid, leader = judged(h)  # A_WINS, fits 90 and 70, bar 40
-    assert validate(h, leader_result=dict(leader, outcome=NEITHER)) is False  # fits far above the bar, yet "nobody earns"
-    assert validate(h, leader_result=dict(leader, fit=[10, 10])) is False  # a win on fits that are below the bar
+    rid, leader = judged(h)  # A_WINS, fits 100 and 75, bar 40
+    assert validate(h, leader_result=dict(leader, outcome=NEITHER)) is False
+    assert validate(h, leader_result=dict(leader, fit=[0, 0])) is False
 
 
-def test_the_leaders_fits_may_differ_when_the_result_is_the_same(h):
-    rid, leader = judged(h)
-    assert validate(h, leader_result=dict(leader, fit=[100, 41])) is True  # the same win, other numbers: fine
+def test_the_leaders_fits_must_equal_the_validators_even_when_the_result_is_the_same(h):
+    rid, leader = judged(h)  # A_WINS, fits 100 and 75
+    assert validate(h, leader_result=dict(leader, fit=[100, 50])) is False  # the neighbouring rung, same result
+    assert validate(h, leader_result=dict(leader, fit=[75, 75])) is False
+    assert validate(h, leader_result=dict(leader, fit=[100, 100])) is False
+    assert validate(h, leader_result=dict(leader)) is True
 
 
-def test_a_leader_that_lifts_the_losing_fit_over_the_bar_is_refused(h):
-    """Same winner and same points today, but the fits are stored and a strike found later decides the match again from
-    them: a loser that the leader lets clear the bar and the validator does not would be paid then."""
+def test_a_leader_that_lifts_or_lowers_the_losing_fit_is_refused_on_either_side_of_the_bar(h):
     rid, leader = judged(h, qualities=(90, 40, 50), min_fit=70)  # only A clears the bar of 70
-    assert leader["outcome"] == A_WINS and leader["fit"][1] < 70
-    assert validate(h, leader_result=dict(leader, fit=[leader["fit"][0], 69])) is True  # higher, but still under the bar
-    assert validate(h, leader_result=dict(leader, fit=[leader["fit"][0], 70])) is False
-    assert validate(h, leader_result=dict(leader, fit=[leader["fit"][0], 100])) is False
+    assert leader["outcome"] == A_WINS and leader["fit"] == [100, 50]
+    for other in ([100, 25], [100, 0], [100, 75], [100, 100], [75, 50], [50, 50]):
+        assert validate(h, leader_result=dict(leader, fit=other)) is False, other
+    assert validate(h, leader_result=dict(leader)) is True
 
 
-def test_the_slack_is_exactly_twenty_five_points(h):
+def test_the_reason_is_the_only_thing_a_leader_may_say_differently(h):
+    rid, leader = judged(h)
+    assert validate(h, leader_result=dict(leader, reason="Something else entirely.", reason2="")) is True
+    assert validate(h, leader_result=dict(leader, reason="<b>bad</b>")) is False
+    assert validate(h, leader_result=dict(leader, reason="x" * 161)) is False
+
+
+def test_there_is_no_slack(h):
     rid, leader = judged(h, qualities=(45, 42, 50), min_fit=40)
-    assert validate(h, leader_result=cautious(leader, (20, 17))) is True
-    assert validate(h, leader_result=cautious(leader, (19, 17))) is False
-    assert validate(h, leader_result=cautious(leader, (20, 16))) is False
+    for fit in ((25, 25), (50, 25), (25, 50), (0, 0), (75, 75)):
+        assert validate(h, leader_result=dict(leader, fit=list(fit))) is False, fit
 
 
 def test_a_validator_refuses_a_leader_that_names_the_other_winner(h):
@@ -129,14 +138,13 @@ def test_a_validator_who_sees_a_weaker_result_refuses_a_stronger_leader(h):
     assert validate(h) is True
 
 
-def test_a_validator_who_sees_a_win_refuses_a_tie_leader_but_accepts_one_that_awards_nothing(h):
-    """A tie gives B a point the validator would not give; "nobody earns" gives nobody anything."""
+def test_a_validator_who_sees_a_win_refuses_a_tie_leader_and_one_that_awards_nothing(h):
     h.model.bias = "first"
     rid, leader = judged(h, qualities=(45, 42, 50), min_fit=40)
     assert leader["outcome"] == TIE
     h.model.bias = None  # the validator now reads a clean win for A
     assert validate(h) is False
-    assert validate(h, leader_result=cautious(leader, (38, 37))) is True
+    assert validate(h, leader_result=cautious(leader, (25, 25))) is False
 
 
 def test_leader_error_is_not_accepted(h):

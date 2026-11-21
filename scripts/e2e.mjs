@@ -31,12 +31,28 @@
 //   EVIDENCE_URLS       three public pages, comma separated, used as the entries' evidence
 //   FINALITY_WAIT       seconds to wait for a payout to arrive in the recipient's balance (default 120)
 //   REPORT_DIR          where reports are written (default ./reports)
+//   RPC_MAX_WAIT        most seconds one call may spend waiting out a rate limit, in total (default 3900: longer than the one-hour window)
+//   RPC_ATTEMPTS        tries for a call that gets a gateway page or a dropped connection (default 8)
+//
+// RPC limits. Studionet allows 500 requests per hour (error -32029 with retry_after_seconds). scripts/rpc.mjs wraps the one
+// fetch that every call goes through, so a rate limit is waited out (as long as the server says) and a gateway page or a
+// dropped connection is retried, in reads, in transactions (a raw transaction is looked up by its hash before it is ever
+// sent again) and in the receipt polling. The run also asks for less: one read around a refusal instead of four, one audit
+// per scenario, and polling that slows down. Every report shows how many requests were made and how many had to be repeated.
+//
+// Money that Studionet keeps. A payable call that the contract refuses is decided as ACCEPTED / ERROR. Its state changes are
+// undone, but the value that came with it stays in the contract's balance, outside the books. The run adds that value up (the
+// adversarial and cancel scenarios send some on purpose) and the balance check expects it:
+//   native = deposited - claimed + what the contract already held beyond its books before the run + value of refused payable calls
+// so a refused call no longer shows up as a mismatch in the scenarios after it, and money that nobody explains still does.
 //
 // Reports: reports/matchplay-e2e-<time>.json, .md and .html. The HTML page refreshes itself while the run is going.
 // The exit code is 1 when any check failed.
 import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { outcome } from "./receipt.mjs";
+import { installResilientFetch, rpcStats, snapshotStats } from "./rpc.mjs";
+import { makePoller, assessBalance, keptValueOf } from "./harness.mjs";
 
 const GEN = 10n ** 18n;
 const MILLI = 10n ** 15n; // 0.001 GEN
@@ -48,6 +64,9 @@ const die = (m) => {
   process.exit(1);
 };
 const replacer = (_k, v) => (typeof v === "bigint" ? v.toString() : v);
+// genlayer-js throws the node's own error object ({ code, message, data }), which String() shows as [object Object].
+const describe = (err) =>
+  err instanceof Error ? (err.stack ?? err.message) : err && typeof err === "object" ? (err.message ? `${err.message}${err.code !== undefined ? ` (code ${err.code})` : ""}` : JSON.stringify(err, replacer)) : String(err);
 const fmt = (w) => {
   w = BigInt(w);
   const s = (w < 0n ? -w : w).toString().padStart(19, "0");
@@ -93,6 +112,11 @@ const TIE = 2;
 const NEITHER = 3;
 
 const BOND = 2n * MILLI;
+// A rate limit can make one call wait for up to an hour (the whole limit window) while a round is open, and the round must still
+// be open when the run comes back. The entry window is never waited out (rounds are started by the run), the playing window only
+// when the judge cannot finish a match; scenarios that test an expired window set their own short one.
+const ENTRY_WINDOW = 6 * 3600;
+const PLAY_WINDOW = 2 * 3600;
 const PRIZE = 12n * MILLI;
 const MIN_FIT = 40;
 const FEE_ALLOWANCE = MILLI; // the most a funded account may lose to fees while claiming (Studionet charges none)
@@ -140,6 +164,16 @@ const need = (k) => {
 const optional = (k) => (/^0x[0-9a-fA-F]{64}$/.test(process.env[k] ?? "") ? process.env[k] : undefined);
 const RPC = studionet?.rpcUrls?.default?.http?.[0];
 if (!RPC) die("The studionet chain definition has no RPC url.");
+// Everything below talks to the network through fetch; from here on a rate limit is waited out and a gateway page retried.
+await installResilientFetch({
+  rpcUrl: RPC,
+  sleep,
+  log: (m) => console.log(`  ${m}`),
+  txHash: globalThis.__rehearsalTxHash, // the offline rehearsal has its own transaction hashes; live, keccak256 of the raw bytes is used
+  maxAttempts: Number(process.env.RPC_ATTEMPTS || 8),
+  maxRateLimitWaitMs: Number(process.env.RPC_MAX_WAIT || 3900) * 1000,
+});
+const { until, waitDecided } = makePoller({ now: clockMs, sleep });
 
 function actor(name, key) {
   const account = sdk.createAccount(key);
@@ -222,8 +256,21 @@ const report = {
   payouts: [],
   scenarios: [],
   summary: { checks: 0, passed: 0, failed: 0, transactions: 0, skipped: 0 },
+  rpc: null,
+  balance: null,
 };
 let current = null;
+// What the contract holds beyond its books (see the header): `baseline` before this run began, `kept` from this run's refused
+// payable calls whose refusal was read from the receipt, `keptPossible` adding those whose outcome is unknown.
+const ledger = { baseline: 0n, kept: 0n, keptPossible: 0n, keptCalls: 0 };
+// The totals read after the last refusal; valid until something that can change them is sent.
+let totalsCache = null;
+const rpcLine = () => {
+  const r = snapshotStats();
+  return `RPC requests: ${r.requests} (${r.retries} repeated: ${r.rateLimited} rate limited, ${r.gateway} gateway pages, ${r.network} dropped connections; waited ${Math.round(r.waitedMs / 1000)}s in all; ${r.recovered} lost answers to a transaction recovered; ${r.giveUps} given up)`;
+};
+const keptLine = () =>
+  `Value Studionet kept from refused payable calls: ${fmt(ledger.kept)} in ${ledger.keptCalls} calls${ledger.keptPossible > ledger.kept ? ` (up to ${fmt(ledger.keptPossible)} counting outcomes that could not be read)` : ""}; held beyond the books before this run: ${fmt(ledger.baseline)}`;
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 function renderMarkdown() {
@@ -231,9 +278,12 @@ function renderMarkdown() {
   L.push(`# ${report.title}`, "");
   L.push(`- contract: \`${report.contract ?? "not deployed yet"}\``);
   L.push(`- started: ${report.startedAt}${report.finished ? `, finished: ${report.finishedAt}` : " (still running)"}`);
+  L.push(`- ${rpcLine()}`);
+  if (ledger.keptPossible > 0n || ledger.baseline !== 0n) L.push(`- ${keptLine()}`);
   L.push(`- result: ${report.summary.passed} of ${report.summary.checks} checks passed, ${report.summary.failed} failed, ${report.summary.transactions} transactions, ${report.summary.skipped} skipped`, "");
   for (const sc of report.scenarios) {
     L.push(`## ${sc.name}: ${sc.status}`, "");
+    if (sc.rpcRequests !== undefined) L.push(`RPC requests: ${sc.rpcRequests}`, "");
     if (sc.note) L.push(sc.note, "");
     for (const n of sc.notes ?? []) L.push(`> ${n}`);
     if (sc.notes?.length) L.push("");
@@ -280,9 +330,11 @@ function renderHtml() {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8">${report.finished ? "" : '<meta http-equiv="refresh" content="5">'}<meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(report.title)}</title>
 <style>:root{color-scheme:light dark}body{font:15px/1.5 system-ui,sans-serif;max-width:60rem;margin:2rem auto;padding:0 1rem}table{border-collapse:collapse;width:100%}td,th{border-bottom:1px solid #8884;padding:.3rem .5rem;text-align:left;vertical-align:top}tr.bad{background:#c0392b33}.tag{font-size:.75rem;padding:.1rem .5rem;border-radius:1rem;background:#8883}.tag.passed{background:#2e7d3255}.tag.failed{background:#c0392b66}.tag.skipped{background:#f9a82566}li.pass{color:#2e7d32}li.fail{color:#c0392b;font-weight:600}code{font-size:.8rem}.note{font-style:italic;opacity:.85}</style></head><body>
 <h1>${esc(report.title)}</h1><p>contract <code>${esc(report.contract ?? "not deployed yet")}</code><br>${report.finished ? `finished ${esc(report.finishedAt)}` : "running, this page refreshes every 5 seconds"}</p>
-<p><b>${report.summary.passed}</b> of ${report.summary.checks} checks passed, <b>${report.summary.failed}</b> failed, ${report.summary.transactions} transactions, ${report.summary.skipped} skipped.</p>${rows}${verdicts}${payouts}</body></html>`;
+<p><b>${report.summary.passed}</b> of ${report.summary.checks} checks passed, <b>${report.summary.failed}</b> failed, ${report.summary.transactions} transactions, ${report.summary.skipped} skipped.</p><p>${esc(rpcLine())}${ledger.keptPossible > 0n || ledger.baseline !== 0n ? `<br>${esc(keptLine())}` : ""}</p>${rows}${verdicts}${payouts}</body></html>`;
 }
 function flush() {
+  report.rpc = snapshotStats();
+  report.balance = { heldBeforeThisRun: ledger.baseline, keptFromRefusedPayableCalls: ledger.kept, keptPossible: ledger.keptPossible, refusedPayableCalls: ledger.keptCalls };
   writeFileSync(`${base}.json`, JSON.stringify(report, replacer, 2));
   writeFileSync(`${base}.md`, renderMarkdown());
   writeFileSync(`${base}.html`, renderHtml());
@@ -352,10 +404,10 @@ async function send(who, fn, args, { value = 0n, label = fn, expectFail = false,
       const fees = await quoteFees(who, call);
       const hash = await who.client.writeContract(fees ? { ...call, fees } : call);
       step.hash = hash;
-      const opts = { hash, retries: 400, interval: 3000 };
-      const receipt = typeof who.client.waitForDecision === "function" ? await who.client.waitForDecision(opts) : await who.client.waitForTransactionReceipt({ ...opts, status: "ACCEPTED" });
+      const receipt = await waitDecided(who.client, hash);
       const out = outcome(receipt);
       step.ok = out.ok;
+      step.known = out.known;
       step.status = out.status;
       if (!out.known && !shownRaw) {
         shownRaw = true;
@@ -363,12 +415,24 @@ async function send(who, fn, args, { value = 0n, label = fn, expectFail = false,
       }
       if (!out.ok && !expectFail) console.log(`  details of the failed ${label}: ${out.detail ?? out.raw ?? ""}`);
     } catch (err) {
-      step.ok = false; // the node refused it before it was even sent
+      // Either the node refused it before it ran, or an answer could not be read; with a hash the transaction is known to exist.
+      step.ok = false;
+      if (step.hash) step.known = false;
+      else step.thrown = true;
       step.status = `rejected: ${String(err?.shortMessage ?? err?.message ?? err).slice(0, 140)}`;
     }
+    // A payable call that was refused leaves its value in the contract (see the header): keep the books of that.
+    const held = keptValueOf(step);
+    ledger.kept += held.kept;
+    ledger.keptPossible += held.possible;
+    if (held.possible > 0n) {
+      ledger.keptCalls++;
+      step.keptValue = held.kept.toString();
+    }
+    if (!(expectFail && !step.ok)) totalsCache = null; // only a refusal is known to leave the totals as they were
     current.steps.push({ ...step });
     report.summary.transactions++;
-    console.log(`  ${step.ok ? "ok " : expectFail ? "no " : "ERR"} ${label} by ${who.name} ${step.hash ?? ""} (${step.status})`);
+    console.log(`  ${step.ok ? "ok " : expectFail ? "no " : "ERR"} ${label} by ${who.name} ${step.hash ?? ""} (${step.status})${held.kept > 0n ? ` [${fmt(held.kept)} stays in the contract]` : ""}`);
     flush();
     if (expectFail || step.ok || attempt >= retries) return step;
     console.log(`  retrying ${label} in ${pause}s`);
@@ -380,41 +444,34 @@ const mustWork = async (who, fn, args, opts = {}) => {
   check(`${opts.label ?? fn} succeeds`, s.ok, s.status);
   return s;
 };
+// One read: stats() has every counter and the four money totals, so "the books balance" is worked out here instead of asking solvency().
 const totalsOf = async () => {
   const st = await stats();
-  const b = await books();
-  return [st.rounds, st.entries, st.judged, st.voided, st.timeouts, st.flagged, st.done, st.cancelled, st.claims, st.deposited, st.claimed, st.owed, st.locked, b.balanced].join("/");
+  const balanced = BigInt(st.deposited) - BigInt(st.claimed) === BigInt(st.owed) + BigInt(st.locked);
+  return [st.rounds, st.entries, st.judged, st.voided, st.timeouts, st.flagged, st.done, st.cancelled, st.claims, st.deposited, st.claimed, st.owed, st.locked, balanced].join("/");
 };
 /** A call that the contract must refuse: it has to be decided as an error and may not move any money. */
 const mustFail = async (who, fn, args, opts = {}) => {
-  const before = await totalsOf();
+  // The totals read after the previous refusal are still the truth when nothing else was sent since, so a run of refusals costs one read each.
+  const before = totalsCache ?? (await totalsOf());
   const s = await send(who, fn, args, { ...opts, expectFail: true });
   const after = await totalsOf();
+  totalsCache = after;
   // Only a transaction that reached the network and was decided as an error counts as a refusal by the contract.
   check(`${opts.label ?? fn} is refused by the contract`, !s.ok && Boolean(s.hash), s.hash ? s.status : `no transaction was sent (${s.status})`);
   check(`${opts.label ?? fn} changed no totals`, before === after, after);
 };
 
-/** Reads until the check holds (the node can lag a moment behind a decided transaction). */
-async function until(get, ok, { tries = 40, every = 3000 } = {}) {
-  let last;
-  for (let i = 0; i < tries; i++) {
-    try {
-      last = await get();
-      if (ok(last)) return last;
-    } catch {
-      /* try again */
-    }
-    await sleep(every);
-  }
-  return last;
-}
+// until() and waitDecided() come from harness.mjs (polling that slows down: 2 s, 3 s, 4.5 s ... up to 12 s).
 
-async function solvent(label = "the books balance") {
+// `audit: false` skips the from-scratch recomputation (it reads every round and every credit); closeBooks() does it once per scenario.
+async function solvent(label = "the books balance", { audit = true } = {}) {
   const b = await books();
   check(label, b.balanced === true, `deposited ${fmt(b.deposited)}, claimed ${fmt(b.claimed)}, owed ${fmt(b.owed)}, locked ${fmt(b.locked)}`);
-  const audit = await read("audit_books");
-  check("the books recomputed from scratch agree", audit.ok === true, JSON.stringify(audit));
+  if (audit) {
+    const a = await read("audit_books");
+    check("the books recomputed from scratch agree", a.ok === true, JSON.stringify(a));
+  }
   return b;
 }
 
@@ -428,8 +485,8 @@ async function newRound(o = {}) {
     o.bond ?? BOND,
     o.min ?? 3,
     o.max ?? 3,
-    o.entryWindow ?? 900,
-    o.playWindow ?? 3600,
+    o.entryWindow ?? ENTRY_WINDOW,
+    o.playWindow ?? PLAY_WINDOW,
     o.bar ?? MIN_FIT,
     o.needEvidence ?? false,
   ];
@@ -507,18 +564,18 @@ async function claimAndVerify(who, why) {
   const entry = { scenario: current.name, who: who.name, expected: owed, contractDelta: null, recipientDelta: null, hash: s.hash, finalized: "not checked" };
   report.payouts.push(entry);
   if (!s.ok) return null;
-  const cleared = await until(() => creditOf(who), (v) => v === 0n, { tries: 10 });
+  const cleared = await until(() => creditOf(who), (v) => v === 0n, { timeout: 30 });
   check(`${who.name}'s credit is cleared`, cleared === 0n, cleared);
-  const tries = Math.ceil(FINALITY_WAIT / 3);
-  const afterContract = await until(() => balanceOf(CONTRACT), (b) => b <= beforeContract - owed, { tries });
+  const patience = { timeout: FINALITY_WAIT };
+  const afterContract = await until(() => balanceOf(CONTRACT), (b) => b <= beforeContract - owed, patience);
   entry.contractDelta = beforeContract - afterContract;
   check(`the contract's balance fell by exactly ${fmt(owed)}`, entry.contractDelta === owed, `fell by ${fmt(entry.contractDelta)}`);
-  const afterWho = await until(() => balanceOf(who.address), (b) => b - beforeWho >= owed - FEE_ALLOWANCE, { tries });
+  const afterWho = await until(() => balanceOf(who.address), (b) => b - beforeWho >= owed - FEE_ALLOWANCE, patience);
   entry.recipientDelta = afterWho - beforeWho;
   check(`${who.name} received the money`, entry.recipientDelta <= owed && entry.recipientDelta >= owed - FEE_ALLOWANCE, `gained ${fmt(entry.recipientDelta)} of ${fmt(owed)}`);
   try {
     if (typeof who.client.waitForTransactionReceipt === "function" && s.hash) {
-      await who.client.waitForTransactionReceipt({ hash: s.hash, status: "FINALIZED", retries: 4, interval: 3000 });
+      await who.client.waitForTransactionReceipt({ hash: s.hash, status: "FINALIZED", retries: 1, interval: 6000 });
       entry.finalized = "yes";
     }
   } catch {
@@ -532,9 +589,37 @@ async function claimAll(why, list = [host, alice, bob, carol, dave]) {
   for (const who of list) total += (await claimAndVerify(who, why)) ?? 0n;
   return total;
 }
-async function inSync(label = "the contract's balance equals what the books say is inside") {
-  const b = await until(() => books(), (x) => x.in_sync === true, { tries: Math.ceil(FINALITY_WAIT / 3) });
-  check(label, b.in_sync === true, `native ${b.native === null ? "unknown" : fmt(b.native)}, deposited ${fmt(b.deposited)}, claimed ${fmt(b.claimed)}`);
+/** Reads the books until the contract's balance is what they say (a claim's transfer can take a while to be finalized). */
+async function settledBooks() {
+  const b = await until(() => books(), (x) => ["ok", "refunded", "unknown"].includes(assessBalance(x, ledger).state), { timeout: FINALITY_WAIT });
+  return b ?? (await books()); // when every read failed, let the real error out
+}
+/** The contract's balance against its books, allowing for the value Studionet kept from refused payable calls (see the header). */
+function checkBalance(b, label = "the contract's balance equals what the books say is inside") {
+  const a = assessBalance(b, ledger);
+  if (a.state === "unknown") {
+    note("the contract could not report its own balance, so it was not compared with the books");
+    return;
+  }
+  let detail = `native ${fmt(b.native)}, deposited ${fmt(b.deposited)}, claimed ${fmt(b.claimed)}`;
+  if (ledger.baseline !== 0n || ledger.keptPossible > 0n) {
+    detail += `; plus ${fmt(ledger.baseline)} held before this run and ${fmt(ledger.kept)}${ledger.keptPossible > ledger.kept ? ` to ${fmt(ledger.keptPossible)}` : ""} kept from refused payable calls`;
+  }
+  if (a.state === "surplus") detail += `; the contract holds ${fmt(a.extra - a.hi)} more than that explains`;
+  if (a.state === "short") detail += `; the contract holds ${fmt(-a.extra)} less than its books say is inside`;
+  if (a.state === "refunded") {
+    detail += `; Studionet gave back ${fmt(a.lo - a.extra)} of the value attached to refused calls`;
+    note(`Studionet returned ${a.extra === 0n ? "all" : "part"} of the value attached to refused payable calls (${fmt(a.extra)} of ${fmt(a.lo)} stayed); nothing is missing`);
+  }
+  check(label, a.state === "ok" || a.state === "refunded", detail);
+}
+/** The end of a scenario: the books balance, they agree with a recomputation from scratch, and the balance is what they say. */
+async function closeBooks(label = "the books balance") {
+  const b = await settledBooks();
+  check(label, b.balanced === true, `deposited ${fmt(b.deposited)}, claimed ${fmt(b.claimed)}, owed ${fmt(b.owed)}, locked ${fmt(b.locked)}`);
+  const a = await read("audit_books");
+  check("the books recomputed from scratch agree", a.ok === true, JSON.stringify(a));
+  checkBalance(b);
   return b;
 }
 
@@ -587,6 +672,9 @@ async function scenario(name, noteText, fn) {
   report.scenarios.push(current);
   console.log(`\n== ${name}: ${noteText}`);
   flush();
+  const requests0 = rpcStats.requests;
+  const possible0 = ledger.keptPossible;
+  const kept0 = ledger.kept;
   try {
     await fn();
     current.status = current.checks.some((c) => !c.ok) ? "failed" : "passed";
@@ -596,10 +684,13 @@ async function scenario(name, noteText, fn) {
       report.summary.skipped++;
       note(`skipped: ${err.message}`);
     } else {
-      check(`the scenario ran to the end`, false, String(err?.stack ?? err).slice(0, 400));
+      check(`the scenario ran to the end`, false, describe(err).slice(0, 400));
       current.status = "failed";
     }
   }
+  current.rpcRequests = rpcStats.requests - requests0;
+  console.log(`  RPC requests in this scenario: ${current.rpcRequests}`);
+  if (ledger.keptPossible > possible0) note(`Studionet kept ${fmt(ledger.kept - kept0)} that was attached to refused payable calls${ledger.keptPossible > ledger.kept ? ` (up to ${fmt(ledger.keptPossible - possible0)} where a receipt could not be read)` : ""}; the books cannot see it and the balance check allows for it`);
   flush();
 }
 
@@ -609,7 +700,7 @@ const scenarios = {
   basics: () =>
     scenario("basics", "open a round, top it up, enter, withdraw, remove an entry and cancel; every refund is claimed and checked", async () => {
       const b0 = await books();
-      const rid = await newRound({ prize: 10n * MILLI, min: 3, max: 4, label: "create_round (prize 0.01 GEN)" });
+      const rid = await newRound({ prize: 10n * MILLI, min: 3, max: 4, entryWindow: 900, label: "create_round (prize 0.01 GEN)" });
       if (rid === null) return;
       let r = await getRound(rid);
       check("the round is open with the prize held", r.state === S.OPEN && BigInt(r.pool) === 10n * MILLI && BigInt(r.prize) === 10n * MILLI, `${STATE[r.state]}, pool ${fmt(r.pool)}`);
@@ -617,7 +708,7 @@ const scenarios = {
       const now = netNow();
       check("the entry deadline is about 15 minutes ahead", r.entry_deadline > now + 600 && r.entry_deadline < now + 1200, `deadline in ${r.entry_deadline - now}s`);
       check("the price of a point is only an estimate while the round is open", r.price_final === false && BigInt(r.price_per_point) === (10n * MILLI) / 6n, fmt(r.price_per_point));
-      const b1 = await solvent();
+      const b1 = await solvent(undefined, { audit: false });
       check("the prize is locked in the books", BigInt(b1.locked) - BigInt(b0.locked) === 10n * MILLI);
 
       await mustWork(host, "top_up", [rid], { value: 2n * MILLI, label: "top_up" });
@@ -630,7 +721,7 @@ const scenarios = {
       check("both entries are stored with the bond held", r.entry_count === 2 && BigInt(r.bonds) === 2n * BOND && r.entries.every((e) => BigInt(e.bond) === BOND && !e.flagged), `bonds ${fmt(r.bonds)}`);
       const mine = await read("rounds_of", [alice.address, 0, 5]);
       check("the entrant finds the round in rounds_of", mine.some((x) => x.id === rid));
-      await solvent();
+      await solvent(undefined, { audit: false });
 
       await mustWork(alice, "withdraw_entry", [rid], { label: "withdraw_entry (alice)" });
       r = await until(() => getRound(rid), (x) => x.entry_count === 1);
@@ -647,8 +738,7 @@ const scenarios = {
       check("the cancelled round holds nothing", r.state === S.CANCELLED && r.pool === "0" && r.bonds === "0" && BigInt(r.returned) === 12n * MILLI);
       check("the prize and the top-up are credited to the host", (await creditOf(host)) === 12n * MILLI);
       await claimAndVerify(host, "cancelled prize");
-      await solvent();
-      await inSync();
+      await closeBooks();
     }),
 
   adversarial: () =>
@@ -739,8 +829,7 @@ const scenarios = {
       await mustFail(outsider, "finalize_round", [rid], { label: "finalizing twice" });
       await mustFail(host, "cancel_round", [rid], { label: "cancelling a finished round" });
       await claimAll("adversarial round refunds");
-      await solvent();
-      await inSync();
+      await closeBooks();
     }),
 
   cancel: () =>
@@ -759,8 +848,7 @@ const scenarios = {
       await mustFail(outsider, "play_next", [rid], { label: "playing a cancelled round" });
       await mustFail(carol, "enter", [rid, ENTRIES.carol.name, ENTRIES.carol.pitch, URL_C], { value: BOND, label: "entering a cancelled round" });
       await claimAll("cancelled round");
-      await solvent();
-      await inSync();
+      await closeBooks();
     }),
 
   timeout: () =>
@@ -781,8 +869,7 @@ const scenarios = {
       check("each entrant gets the bond back", (await creditOf(alice)) === BOND && (await creditOf(bob)) === BOND && (await creditOf(carol)) === BOND);
       checkSettled(done, "timeout round");
       await claimAll("timed-out round");
-      await solvent();
-      await inSync();
+      await closeBooks();
     }),
 
   tournament: () =>
@@ -791,7 +878,7 @@ const scenarios = {
       if (rid === null) return;
       const full = await fillRound(rid);
       check("three entries with evidence are in", full.entry_count === 3 && full.entries.every((e) => e.url));
-      await solvent();
+      await solvent(undefined, { audit: false });
       await mustWork(outsider, "start_round", [rid], { label: "start_round" });
       let r = await until(() => getRound(rid), (x) => x.state === S.PLAYING);
       if (r.state !== S.PLAYING) return;
@@ -829,10 +916,9 @@ const scenarios = {
       note(`final points ${pts.join("/")} (alice/bob/carol); paid ${fmt(paid)} of ${fmt(PRIZE)}; back to the host ${fmt(r.returned)}`);
       const carolRow = r.entries[2];
       if (carolRow.points > 0 && r.entries[0].points === 0) note("the model ranked the discount shop above the guide; the verdicts are listed in the report");
-      await solvent();
+      await solvent(undefined, { audit: false });
       await claimAll("tournament payouts");
-      await solvent("the books balance after every claim");
-      await inSync();
+      await closeBooks("the books balance after every claim");
     }),
 
   strike: () =>
@@ -880,9 +966,9 @@ const scenarios = {
         check("its bond is not credited back to it", (await creditOf(carol)) === 0n);
         check("the host gets the forfeited bond on top of the unearned prize", BigInt(r.returned) >= BOND && (await creditOf(host)) === BigInt(r.returned), fmt(r.returned));
       }
-      await solvent();
+      await solvent(undefined, { audit: false });
       await claimAll("strike round");
-      await inSync();
+      await closeBooks();
     }),
 
   views: () =>
@@ -940,8 +1026,7 @@ const scenarios = {
       checkSettled(r, "void round");
       check("the entry with the broken page is not flagged and gets its bond back", !r.entries[2].flagged && (await creditOf(carol)) === BOND);
       await claimAll("void round");
-      await solvent();
-      await inSync();
+      await closeBooks();
     }),
 };
 
@@ -984,26 +1069,38 @@ try {
   die(`The contract at ${CONTRACT} does not answer stats(): ${String(err?.message ?? err).slice(0, 200)}`);
 }
 const booksBefore = await books();
+// Money that earlier runs left in this deployment (value kept from refused payable calls) is not this run's to explain.
+if (booksBefore.native !== null && booksBefore.native !== undefined) {
+  ledger.baseline = BigInt(booksBefore.native) - (BigInt(booksBefore.deposited) - BigInt(booksBefore.claimed));
+  if (ledger.baseline !== 0n) console.log(`note: the contract already holds ${fmt(ledger.baseline)} beyond its books (value kept from refused payable calls in earlier runs); it is allowed for in the balance checks.`);
+}
 flush();
 
 for (const name of SCENARIOS) await scenarios[name]();
 
 current = { name: "totals", note: "the contract's own books after the run", status: "running", steps: [], checks: [], notes: [] };
 report.scenarios.push(current);
-report.statsAfter = await stats();
-const b = await books();
-check("the contract's books balance at the end", b.balanced === true, `deposited ${fmt(b.deposited)}, claimed ${fmt(b.claimed)}, owed ${fmt(b.owed)}, locked ${fmt(b.locked)}`);
-check("this run left nothing locked in a round", BigInt(b.locked) === BigInt(booksBefore.locked), `locked ${fmt(booksBefore.locked)} -> ${fmt(b.locked)}`);
-check("this run left nothing credited and unclaimed", BigInt(b.owed) === BigInt(booksBefore.owed), `owed ${fmt(booksBefore.owed)} -> ${fmt(b.owed)}`);
-const finalAudit = await read("audit_books");
-check("the books recomputed from scratch agree", finalAudit.ok === true, JSON.stringify(finalAudit));
-await inSync("the contract's balance equals what the books say is inside, at the end");
-check("every transfer sent out has arrived", BigInt(b.claimed) - BigInt(booksBefore.claimed) === report.payouts.reduce((t, p) => t + (p.contractDelta ?? 0n), 0n) || report.payouts.some((p) => p.contractDelta === null), `claimed ${fmt(BigInt(b.claimed) - BigInt(booksBefore.claimed))}`);
+// The closing reads can fail like any other; the report is finished and the exit code set whatever happens here.
+try {
+  report.statsAfter = await stats();
+  const b = await settledBooks();
+  check("the contract's books balance at the end", b.balanced === true, `deposited ${fmt(b.deposited)}, claimed ${fmt(b.claimed)}, owed ${fmt(b.owed)}, locked ${fmt(b.locked)}`);
+  check("this run left nothing locked in a round", BigInt(b.locked) === BigInt(booksBefore.locked), `locked ${fmt(booksBefore.locked)} -> ${fmt(b.locked)}`);
+  check("this run left nothing credited and unclaimed", BigInt(b.owed) === BigInt(booksBefore.owed), `owed ${fmt(booksBefore.owed)} -> ${fmt(b.owed)}`);
+  const finalAudit = await read("audit_books");
+  check("the books recomputed from scratch agree", finalAudit.ok === true, JSON.stringify(finalAudit));
+  checkBalance(b, "the contract's balance equals what the books say is inside, at the end");
+  check("every transfer sent out has arrived", BigInt(b.claimed) - BigInt(booksBefore.claimed) === report.payouts.reduce((t, p) => t + (p.contractDelta ?? 0n), 0n) || report.payouts.some((p) => p.contractDelta === null), `claimed ${fmt(BigInt(b.claimed) - BigInt(booksBefore.claimed))}`);
+} catch (err) {
+  check("the closing checks ran to the end", false, describe(err).slice(0, 400));
+}
 current.status = current.checks.every((c) => c.ok) ? "passed" : "failed";
 
 report.finished = true;
 report.finishedAt = new Date().toISOString();
 flush();
 console.log(`\n${report.summary.passed} of ${report.summary.checks} checks passed, ${report.summary.failed} failed, ${report.summary.skipped} scenario(s) skipped.`);
+console.log(rpcLine());
+if (ledger.keptPossible > 0n || ledger.baseline !== 0n) console.log(keptLine());
 console.log(`report: ${base}.html`);
 process.exit(report.summary.failed ? 1 : 0);

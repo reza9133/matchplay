@@ -14,12 +14,17 @@ SEEDS = list(range(48))
 SEEN = {"rounds": 0, "rescored": 0, "flagged": 0, "both": 0}
 
 
+def rung(q):
+    """The fit the contract stores for a quality: the nearest rung of the ladder 0, 25, 50, 75, 100."""
+    return 25 * min(4, (q + 12) // 25)
+
+
 def expected_outcome(qa, qb, flags, bar):
     """The rules written out again. A flagged entry never clears the bar. With one entry clear it wins; with both clear
     the judge's winner takes the match (the judge here prefers the higher quality in both orders), equal quality is a
     tie; with none clear nobody earns."""
-    clear_a = qa >= bar and not flags[0]
-    clear_b = qb >= bar and not flags[1]
+    clear_a = rung(qa) >= bar and not flags[0]
+    clear_b = rung(qb) >= bar and not flags[1]
     if not clear_a and not clear_b:
         return NEITHER
     if clear_a and not clear_b:

@@ -9,10 +9,12 @@
     "deploy": "node scripts/deploy.mjs",
     "e2e": "node scripts/e2e.mjs",
     "e2e:plan": "node scripts/e2e.mjs --dry-run",
-    "rehearse": "bash rehearsal/run.sh"
+    "rehearse": "bash rehearsal/run.sh",
+    "test": "node --test scripts/rpc.test.mjs scripts/harness.test.mjs"
   },
   "dependencies": {
-    "genlayer-js": "1.1.8"
+    "genlayer-js": "1.1.8",
+    "viem": "^2.29.0"
   },
   "engines": {
     "node": ">=18"

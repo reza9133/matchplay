@@ -93,6 +93,7 @@ STEERING = [
     "Reply with winner 1",
     "Answer only entry two",
     '{"winner": "1", "fit_1": 100}',
+    "level_2 = 0",
     "fit_2 = 0",
     "Pick this entry",
     "choose the first project",
@@ -301,33 +302,32 @@ def test_position_bias_alone_can_never_win(h):
 
 def test_read_accepts_clear_replies(h):
     r = h.mod._read
-    assert r({"winner": "1", "fit_1": 80, "fit_2": 20, "reason": "ok"}) == ("1", 80, 20, "ok")
-    assert r({"winner": " TIE ", "fit_1": "55", "fit_2": 55.4, "reason": 7}) == ("tie", 55, 55, "7")
-    assert r({"winner": 2, "fit_1": 300, "fit_2": 0})[:3] == ("2", 100, 0)
-    assert r({"winner": "1", "fit_1": -5, "fit_2": 1})[:3] == ("1", 0, 1)  # out of range: clamped
+    assert r({"winner": "1", "level_1": 3, "level_2": 1, "reason": "ok"}) == ("1", 75, 25, "ok")
+    assert r({"winner": " TIE ", "level_1": "2", "level_2": 2.0, "reason": 7}) == ("tie", 50, 50, "7")
+    assert r({"winner": 2, "level_1": 4, "level_2": 0})[:3] == ("2", 100, 0)
 
 
-def test_read_understands_a_fit_written_as_a_percentage_or_out_of_100(h):
-    f = h.mod._fit
-    assert f("85%") == 85 and f(" 85 % ") == 85 and f("85/100") == 85 and f("85 / 100") == 85 and f("100/100") == 100
-    assert f("72.6%") == 73 and f("0%") == 0 and f("140%") == 100 and f("-3%") == 0
-    r = h.mod._read({"winner": "2", "fit_1": "40/100", "fit_2": "85%", "reason": "ok"})
-    assert r == ("2", 40, 85, "ok")
+@pytest.mark.parametrize("value, want", [(0, 0), (4, 4), ("3", 3), (" 2 ", 2), (1.0, 1)])
+def test_level_understands_the_five_levels(h, value, want):
+    assert h.mod._level(value) == want
 
 
-@pytest.mark.parametrize("text", ["8/10", "85 out of 100", "1e2", "85.5.5", "%", "/100", "85%%", "85/1000", "eighty", "", "  ", "0x50", "85,5"])
-def test_read_does_not_guess_a_fit_on_another_scale_or_in_words(h, text):
-    assert h.mod._fit(text) is None
+@pytest.mark.parametrize(
+    "value", [5, -1, 2.5, 85, "85%", "8/10", "high", "", "  ", "1e2", "0x3", "3.0", "03", True, False, None, [2], float("nan"), 1e30],
+)
+def test_level_never_rounds_clamps_or_guesses(h, value):
+    assert h.mod._level(value) is None
 
 
 @pytest.mark.parametrize(
     "reply",
     [
-        {}, {"winner": "3", "fit_1": 1, "fit_2": 1}, {"winner": "", "fit_1": 1, "fit_2": 1}, {"winner": "1", "fit_1": 1},
-        {"winner": "1", "fit_1": "high", "fit_2": 1}, {"winner": "1", "fit_1": None, "fit_2": 1},
-        {"winner": "1", "fit_1": True, "fit_2": 1}, {"winner": "1", "fit_1": [5], "fit_2": 1},
-        {"winner": "entry 1", "fit_1": 1, "fit_2": 1}, {"winner": None, "fit_1": 1, "fit_2": 1},
-        {"winner": "1", "fit_1": "8/10", "fit_2": 1}, {"winner": "1", "fit_1": 1, "fit_2": "85 out of 100"},
+        {}, {"winner": "3", "level_1": 1, "level_2": 1}, {"winner": "", "level_1": 1, "level_2": 1}, {"winner": "1", "level_1": 1},
+        {"winner": "1", "level_1": "high", "level_2": 1}, {"winner": "1", "level_1": None, "level_2": 1},
+        {"winner": "1", "level_1": True, "level_2": 1}, {"winner": "1", "level_1": [2], "level_2": 1},
+        {"winner": "entry 1", "level_1": 1, "level_2": 1}, {"winner": None, "level_1": 1, "level_2": 1},
+        {"winner": "1", "level_1": 5, "level_2": 1}, {"winner": "1", "level_1": 1, "level_2": 85},
+        {"winner": "1", "fit_1": 80, "fit_2": 20},  # the old keys are not understood
     ],
 )
 def test_read_refuses_unusable_replies(h, reply):
@@ -335,35 +335,64 @@ def test_read_refuses_unusable_replies(h, reply):
         h.mod._read(reply)
 
 
-# ---- the validator acceptance rule ----------------------------------------------------------------------------------
+# ---- the validator acceptance rule: exact equality ---------------------------------------------------------------------
 
 
-def result(outcome, flagged=(0, 0), fit=(60, 60), win=("A", "A"), reason="ok", reason2="ok", hashes=("", "")):
+def result(outcome, flagged=(0, 0), fit=(50, 50), win=("A", "A"), reason="ok", reason2="ok", hashes=("", "")):
     return {
         "kind": "OK", "flagged": list(flagged), "fit": list(fit), "win": list(win), "outcome": outcome,
         "reason": reason, "reason2": reason2, "hash": list(hashes),
     }
 
 
-def test_acceptance_never_allows_a_more_generous_leader(h):
+UNREADABLE = {"kind": "UNREADABLE", "bad": [1, 0], "flagged": [0, 0]}
+
+
+def test_acceptance_is_exact_equality_for_every_pair_of_outcomes(h):
     acc = h.mod._accepts
     for mine_o, theirs_o in itertools.product(range(4), repeat=2):
-        mine = result(mine_o)
-        ok = acc(result(theirs_o), mine)
-        a, b = POINTS[theirs_o]
-        ma, mb = POINTS[mine_o]
-        assert ok == (a <= ma and b <= mb), (mine_o, theirs_o)
+        assert acc(result(theirs_o), result(mine_o)) == (mine_o == theirs_o), (mine_o, theirs_o)
 
 
-def test_acceptance_examples(h):
+def test_a_more_cautious_or_more_generous_leader_is_refused(h):
     acc = h.mod._accepts
     assert acc(result(A_WINS), result(A_WINS))
-    assert acc(result(NEITHER), result(A_WINS))  # a more cautious leader is fine
-    assert not acc(result(TIE), result(A_WINS))  # B would get a point the validator would not give
-    assert not acc(result(A_WINS), result(TIE))
+    assert not acc(result(NEITHER), result(A_WINS))  # more cautious: refused
+    assert not acc(result(TIE), result(A_WINS))
+    assert not acc(result(A_WINS), result(TIE))  # more generous: refused
     assert not acc(result(B_WINS), result(A_WINS))
-    assert acc(result(TIE), result(TIE))
     assert not acc(result(A_WINS), result(NEITHER))
+
+
+@pytest.mark.parametrize("field, other", [
+    ("fit", [75, 50]), ("fit", [50, 75]), ("fit", [25, 25]), ("fit", [100, 100]),  # a neighbouring rung is a difference
+    ("win", ["A", "T"]), ("win", ["T", "A"]), ("win", ["B", "A"]),
+    ("flagged", [1, 0]), ("flagged", [0, 1]),
+    ("hash", ["a" * 64, ""]), ("hash", ["", "b" * 64]),
+])
+def test_any_difference_in_a_stored_field_is_refused_even_when_the_outcome_is_the_same(h, field, other):
+    mine = result(A_WINS)
+    assert h.mod._accepts(dict(mine), dict(mine))
+    assert not h.mod._accepts(dict(mine, **{field: other}), mine)
+    assert not h.mod._accepts(mine, dict(mine, **{field: other}))
+
+
+def test_the_outcome_alone_is_not_enough(h):
+    mine = result(A_WINS, fit=(100, 75), win=("A", "A"))
+    other = result(A_WINS, fit=(100, 50), win=("A", "A"))  # same result, other fit
+    assert not h.mod._accepts(other, mine)
+    other = result(A_WINS, fit=(100, 75), win=("A", "T"))  # same result, other winner in one order
+    assert not h.mod._accepts(other, mine)
+
+
+def test_only_the_free_text_may_differ(h):
+    mine = result(A_WINS, reason="The first entry is clearer.", reason2="Entry A has working code.")
+    theirs = result(A_WINS, reason="Better evidence.", reason2="")
+    assert h.mod._accepts(theirs, mine)
+    assert h.mod._accepts(dict(theirs, reason="x" * h.mod.MAX_REASON), mine)
+    assert not h.mod._accepts(dict(theirs, reason="x" * (h.mod.MAX_REASON + 1)), mine)
+    assert not h.mod._accepts(dict(theirs, reason="<b>x</b>"), mine)
+    assert not h.mod._accepts(dict(theirs, reason2=5), mine)
 
 
 def test_acceptance_requires_the_same_flagged_and_unreadable_pages(h):
@@ -371,24 +400,28 @@ def test_acceptance_requires_the_same_flagged_and_unreadable_pages(h):
     assert not acc(result(NEITHER, flagged=(1, 0)), result(NEITHER, flagged=(0, 0)))
     assert not acc(result(NEITHER, flagged=(0, 0)), result(NEITHER, flagged=(1, 0)))
     assert acc(result(NEITHER, flagged=(1, 0)), result(NEITHER, flagged=(1, 0)))
-    bad = {"kind": "UNREADABLE", "bad": [1, 0], "flagged": [0, 0]}
+    bad = dict(UNREADABLE)
     assert acc(dict(bad), dict(bad))
     assert not acc(dict(bad, bad=[0, 1]), dict(bad))
     assert not acc(dict(bad, bad=[1, 1]), dict(bad))
     assert not acc(result(NEITHER), dict(bad))
     assert not acc(dict(bad), result(NEITHER))
     assert not acc(dict(bad, flagged=[1, 0]), dict(bad))
+    assert not acc(dict(bad, bad=[True, False]), dict(bad))  # True == 1, but it is not the same value
 
 
 @pytest.mark.parametrize(
     "mutate",
     [
         lambda r: r.pop("outcome"), lambda r: r.update(outcome=9), lambda r: r.update(outcome=True), lambda r: r.update(outcome="0"),
+        lambda r: r.update(outcome=0.0),
         lambda r: r.update(fit=[1]), lambda r: r.update(fit=[1, 101]), lambda r: r.update(fit=[1, "2"]), lambda r: r.update(fit=[True, 2]),
+        lambda r: r.update(fit=[50.0, 50]), lambda r: r.update(fit=[51, 50]),  # not a rung of the ladder
         lambda r: r.update(win=["A"]), lambda r: r.update(win=["A", "X"]), lambda r: r.update(win=[1, 2]),
         lambda r: r.update(hash=["", "zz"]), lambda r: r.update(hash=["a" * 63, ""]), lambda r: r.update(hash=[""]),
         lambda r: r.update(reason="<b>x</b>"), lambda r: r.update(reason2="x" * 200), lambda r: r.update(reason=5),
         lambda r: r.update(flagged=[0]), lambda r: r.update(flagged=[2, 0]), lambda r: r.update(flagged="no"),
+        lambda r: r.update(flagged=[False, False]),
         lambda r: r.update(kind="OK2"), lambda r: r.pop("hash"), lambda r: r.pop("fit"), lambda r: r.pop("win"),
     ],
 )
@@ -402,107 +435,50 @@ def test_acceptance_refuses_things_that_are_not_results(h):
     for junk in (None, 5, "x", [], [1, 2], True):
         assert not h.mod._accepts(junk, result(NEITHER))
     ok_hash = "a" * 64
-    assert h.mod._accepts(result(A_WINS, hashes=(ok_hash, "")), result(A_WINS))
+    assert h.mod._accepts(result(A_WINS, hashes=(ok_hash, "")), result(A_WINS, hashes=(ok_hash, "")))
+    assert not h.mod._accepts(result(A_WINS, hashes=(ok_hash, "")), result(A_WINS))
 
 
-# ---- the acceptance rule with the bar (what a real validator applies) ---------------------------------------------------
+def test_there_is_no_slack_left_in_the_contract(h):
+    assert not hasattr(h.mod, "FIT_SLACK")
+    import inspect
+    assert "bar" not in inspect.signature(h.mod._accepts).parameters
 
 
-def test_acceptance_with_the_bar_wants_a_result_that_follows_from_its_own_readings(h):
-    acc = h.mod._accepts
-    mine = result(A_WINS, fit=(90, 70))
-    assert acc(result(A_WINS, fit=(90, 70)), mine, 40)
-    assert not acc(result(NEITHER, fit=(90, 70)), mine, 40)  # fits far above the bar, yet "nobody earns"
-    assert not acc(result(A_WINS, fit=(10, 10)), mine, 40)  # fits below the bar, yet a win
-    assert not acc(result(B_WINS, fit=(90, 70), win=("A", "A")), mine, 40)  # more generous, and it does not follow either
-    assert acc(result(NEITHER, fit=(90, 70)), mine)  # without the bar only structure and generosity are checked
+def test_acceptance_is_equality_on_random_pairs(h):
+    """Over many random results: accepted exactly when kind, flagged, fit, win, outcome and hash are all equal."""
+    rng = random.Random(2026)
+    accept = h.mod._accepts
+    digests = ["", "a" * 64, "b" * 64]
+    seen_yes = seen_no = 0
+
+    def draw():
+        fit = [rng.choice(h.mod.LEVEL_FIT) for _ in range(2)]
+        flagged = [rng.choice([0, 1]), rng.choice([0, 1])]
+        win = [rng.choice("ABT"), rng.choice("ABT")]
+        return result(rng.randrange(4), flagged=flagged, fit=fit, win=win, hashes=(rng.choice(digests), rng.choice(digests)),
+                      reason=rng.choice(["a", "b", ""]), reason2=rng.choice(["c", "d", ""]))
+
+    pool = [draw() for _ in range(40)]
+    for mine in pool:
+        for theirs in pool:
+            same = all(mine[k] == theirs[k] for k in ("flagged", "fit", "win", "outcome", "hash"))
+            assert accept(theirs, mine) == same
+            seen_yes += same
+            seen_no += not same
+    assert seen_yes >= 40 and seen_no > 1000
 
 
-def test_a_more_cautious_result_has_to_stay_near_the_validators_fits(h):
-    acc = h.mod._accepts
-    assert h.mod.FIT_SLACK == 25
-    mine = result(A_WINS, fit=(45, 42))  # both just above the bar of 40, and A wins in both orders
-
-    def cautious(a, b):
-        return result(NEITHER, fit=(a, b))
-
-    assert acc(cautious(38, 37), mine, 40)
-    assert acc(cautious(20, 17), mine, 40)  # 25 points lower on both: the limit
-    assert not acc(cautious(19, 17), mine, 40)
-    assert not acc(cautious(20, 16), mine, 40)
-    assert not acc(cautious(0, 0), mine, 40)  # a leader that read nothing cannot answer "nobody earns"
-    assert acc(cautious(0, 0), mine)  # (the rule without the bar let that through)
-
-
-def test_the_same_result_is_accepted_whatever_the_fits_behind_it_as_long_as_the_bar_is_cleared_by_the_same_sides(h):
-    mine = result(A_WINS, fit=(90, 70))
-    assert h.mod._accepts(result(A_WINS, fit=(100, 41)), mine, 40)  # equal results, both sides over the bar: other numbers are fine
-    assert h.mod._accepts(result(A_WINS, fit=(41, 100)), mine, 40)
-
-
-def test_a_losing_fit_cannot_be_lifted_over_the_bar_even_when_the_result_is_the_same(h):
-    """The fits are stored, and a strike found later decides the match again from them, so they have to be as cautious
-    as the validator's own: the same result today is not enough."""
-    acc = h.mod._accepts
-    mine = result(A_WINS, fit=(90, 40))  # bar 70: only A clears
-    assert acc(result(A_WINS, fit=(90, 40)), mine, 70)
-    assert acc(result(A_WINS, fit=(90, 69)), mine, 70)  # higher, but still under the bar: information only
-    assert not acc(result(A_WINS, fit=(90, 70)), mine, 70)  # B clears for the leader and not for the validator
-    assert not acc(result(A_WINS, fit=(90, 100)), mine, 70)
-    assert acc(result(A_WINS, fit=(90, 40)), result(A_WINS, fit=(90, 80)), 70)  # the other way round is just more cautious
-    # the side that wins is held to the same rule
-    won = result(B_WINS, fit=(65, 90), win=("B", "B"))
-    assert acc(result(B_WINS, fit=(65, 90), win=("B", "B")), won, 70)
-    assert not acc(result(B_WINS, fit=(70, 90), win=("B", "B")), won, 70)
-    assert acc(result(B_WINS, fit=(70, 90), win=("B", "B")), won)  # (the rule without the bar cannot see it)
-
-
-def test_an_accepted_result_is_never_more_generous_even_after_a_later_strike(h):
-    """Whatever fits and winners a leader reports: when the validator accepts them, no strike that may still be found
-    can make the leader's version pay more than the validator's own reading would pay."""
-    rng = random.Random(77)
-    decide, accepts = h.mod._decide, h.mod._accepts
-    accepted = differing = changed = 0
-
-    def reading(bar):
-        fit = [rng.choice([rng.randint(0, 100), bar, max(0, bar - 1), min(100, bar + 1)]) for _ in range(2)]
-        return fit, [rng.choice("ABT"), rng.choice("ABT")]
-
-    for _ in range(40_000):
+def test_a_decision_follows_from_the_fits_it_stores(h):
+    """Because the fields are equal, the stored fits always lead to the stored outcome by the same rule."""
+    rng = random.Random(5)
+    decide = h.mod._decide
+    for _ in range(5000):
         bar = rng.choice([0, 10, 40, 50, 70, 90])
+        fit = [rng.choice(h.mod.LEVEL_FIT) for _ in range(2)]
         flagged = [rng.choice([0, 0, 1]), rng.choice([0, 0, 1])]
-        fit_m, win_m = reading(bar)
-        fit_t, win_t = reading(bar)
-        if rng.random() < 0.5:  # often a leader that is close to the validator
-            fit_t = [min(100, max(0, f + rng.randint(-12, 12))) for f in fit_m]
-        mine = result(decide(fit_m, flagged, win_m[0], win_m[1], bar), flagged=flagged, fit=fit_m, win=win_m)
-        theirs = result(decide(fit_t, flagged, win_t[0], win_t[1], bar), flagged=flagged, fit=fit_t, win=win_t)
-        if not accepts(theirs, mine, bar):
-            continue
-        accepted += 1
-        differing += fit_t != fit_m
-        changed += theirs["outcome"] != mine["outcome"]
-        for extra in itertools.product((0, 1), repeat=2):
-            later = [flagged[0] or extra[0], flagged[1] or extra[1]]
-            got = POINTS[decide(fit_t, later, win_t[0], win_t[1], bar)]
-            want = POINTS[decide(fit_m, later, win_m[0], win_m[1], bar)]
-            assert got[0] <= want[0] and got[1] <= want[1], (bar, flagged, later, fit_m, win_m, fit_t, win_t)
-    assert accepted > 2000 and differing > 1000 and changed > 100, (accepted, differing, changed)
-
-
-def test_a_cautious_leader_is_also_possible_after_a_tie(h):
-    acc = h.mod._accepts
-    mine = result(TIE, fit=(60, 60), win=("A", "B"))
-    assert acc(result(NEITHER, fit=(35, 35), win=("A", "B")), mine, 40)
-    assert not acc(result(NEITHER, fit=(34, 34), win=("A", "B")), mine, 40)
-    assert not acc(result(A_WINS, fit=(60, 60), win=("A", "A")), mine, 40)  # a win is more generous than a tie to A
-
-
-def test_results_with_a_flagged_side_follow_the_same_rule(h):
-    acc = h.mod._accepts
-    both = result(NEITHER, flagged=(1, 1), fit=(0, 0), win=("T", "T"))
-    assert acc(both, dict(both), 40)
-    one = result(B_WINS, flagged=(1, 0), fit=(90, 90), win=("A", "A"))
-    assert acc(one, dict(one), 40)  # a flagged side never wins, so B takes the match
-    assert not acc(result(A_WINS, flagged=(1, 0), fit=(90, 90), win=("A", "A")), dict(one), 40)
-    assert acc(result(NEITHER, flagged=(1, 0), fit=(90, 30), win=("A", "A")), result(B_WINS, flagged=(1, 0), fit=(90, 45), win=("A", "A")), 40)
+        win = [rng.choice("ABT"), rng.choice("ABT")]
+        mine = result(decide(fit, flagged, win[0], win[1], bar), flagged=flagged, fit=fit, win=win)
+        assert h.mod._accepts(dict(mine), mine)
+        wrong = dict(mine, outcome=(mine["outcome"] + 1) % 4)
+        assert not h.mod._accepts(wrong, mine)

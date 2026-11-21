@@ -6,6 +6,10 @@
 #   REHEARSAL_SPEED=60 bash rehearsal/run.sh --with-void    the clock runs 60x faster (the default is 120)
 #   FINALITY_DELAY=90 bash rehearsal/run.sh                 transfers only arrive 90 chain-seconds after the claim
 #   JUDGE=biased | noisy | flaky   bash rehearsal/run.sh    how the scripted judge behaves (default: honest)
+#   the three problems of the first live run can be reproduced (each is off by default except the kept value):
+#   RATE_LIMIT=300 RATE_WINDOW=3600 REHEARSAL_SPEED=60 bash rehearsal/run.sh      the node answers -32029 after 300 requests per chain hour
+#   FAULT_HTML=0.05 FAULT_RESET=0.02 bash rehearsal/run.sh                       HTML gateway pages and dropped connections, before or after a request ran
+#   KEEP_VALUE_ON_ERROR=0 bash rehearsal/run.sh                                  a refused payable call gives its value back (the default keeps it, as Studionet does)
 set -e
 here="$(cd "$(dirname "$0")/.." && pwd)"
 work="$here/.rehearsal-tmp"

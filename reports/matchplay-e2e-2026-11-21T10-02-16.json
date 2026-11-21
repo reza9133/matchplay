@@ -1,0 +1,3429 @@
+{
+  "title": "Matchplay live test on Studionet",
+  "network": "studionet",
+  "rpc": {
+    "requests": 1352,
+    "retries": 0,
+    "rateLimited": 0,
+    "gateway": 0,
+    "network": 0,
+    "recovered": 0,
+    "giveUps": 0,
+    "waitedMs": 0,
+    "byMethod": {
+      "eth_chainId": 5,
+      "eth_getTransactionCount": 111,
+      "eth_estimateGas": 111,
+      "eth_gasPrice": 111,
+      "eth_sendRawTransaction": 111,
+      "eth_getTransactionReceipt": 111,
+      "eth_getTransactionByHash": 374,
+      "eth_getBalance": 196,
+      "gen_call": 222
+    }
+  },
+  "contract": "0xdd842644E5fEaba5c4FDB28d97236b5B58C5C69c",
+  "startedAt": "2026-11-21T10:02:16.740Z",
+  "finishedAt": "2026-11-21T10:48:46.302Z",
+  "finished": true,
+  "accounts": {
+    "host": "0xeD4945cF393aCa4f51af24bc9F842Ba6b9D57a6e",
+    "alice": "0x2CA016E1FfadaBacC887804A8e952D6eAf89a4e1",
+    "bob": "0xA39C1A01217bAa3EFec768B5b03E5cC06c305A42",
+    "carol": "0x71F0b7A0fA6236e14d782E388Fa5AE50cf4BF8a9",
+    "dave": "0x4D283Cc859bb8F7afd28C18B9d90f4686Acc9626",
+    "outsider": "0xd3a6d4b3D0D3926ee825C53fcC9BF5c0943D126F"
+  },
+  "inputs": {
+    "scenarios": [
+      "basics",
+      "adversarial",
+      "cancel",
+      "timeout",
+      "tournament",
+      "strike",
+      "views"
+    ],
+    "evidence": [
+      "https://www.iana.org/help/example-domains",
+      "https://www.iana.org/domains/reserved",
+      "https://example.com/"
+    ],
+    "prize": "12000000000000000",
+    "bond": "2000000000000000",
+    "bar": 40
+  },
+  "statsBefore": {
+    "rounds": 0,
+    "entries": 0,
+    "judged": 0,
+    "voided": 0,
+    "timeouts": 0,
+    "flagged": 0,
+    "done": 0,
+    "cancelled": 0,
+    "claims": 0,
+    "deposited": "0",
+    "claimed": "0",
+    "owed": "0",
+    "locked": "0"
+  },
+  "statsAfter": {
+    "rounds": 6,
+    "entries": 16,
+    "judged": 6,
+    "voided": 0,
+    "timeouts": 6,
+    "flagged": 1,
+    "done": 4,
+    "cancelled": 2,
+    "claims": 20,
+    "deposited": "86000000000000000",
+    "claimed": "86000000000000000",
+    "owed": "0",
+    "locked": "0"
+  },
+  "verdicts": [
+    {
+      "scenario": "tournament",
+      "match": "0: Alice guide vs Bob reference",
+      "result": "tie (judge)",
+      "fit": "50 / 50",
+      "win": "B / A",
+      "reason": "Entry 2's page explains reserved domains with RFC context and categories; Entry 1's page is the brief IANA notice, so its 'worked samples' claim is unsupported."
+    },
+    {
+      "scenario": "tournament",
+      "match": "1: Alice guide vs Carol shop",
+      "result": "A wins (judge)",
+      "fit": "75 / 0",
+      "win": "A / A",
+      "reason": "Entry 1 gives relevant explanation of reserved example domains; entry 2 is a sales pitch and its evidence contradicts its claim."
+    },
+    {
+      "scenario": "tournament",
+      "match": "2: Bob reference vs Carol shop",
+      "result": "A wins (judge)",
+      "fit": "75 / 0",
+      "win": "A / A",
+      "reason": "Entry 1's pitch matches its IANA evidence page on example and reserved domains; Entry 2 pitches a discount domain sale its own page contradicts, so it is promot"
+    },
+    {
+      "scenario": "strike",
+      "match": "0: Alice guide vs Bob reference",
+      "result": "A wins (judge)",
+      "fit": "75 / 50",
+      "win": "A / A",
+      "reason": "Entry 1 matches the example-domain focus and its page backs the claims; Entry 2 is broader, with a page that lists reserved domains and IDN tests rather than ex"
+    },
+    {
+      "scenario": "strike",
+      "match": "1: Alice guide vs Carol shop",
+      "result": "A wins (judge)",
+      "fit": "75 / 0",
+      "win": "A / A",
+      "reason": "Entry 1 is IANA's authoritative explanation of the reserved example domains; entry 2 is unrelated domain sales promotion with judge-directed text."
+    },
+    {
+      "scenario": "strike",
+      "match": "2: Bob reference vs Carol shop",
+      "result": "A wins (judge)",
+      "fit": "75 / 0",
+      "win": "A / A",
+      "reason": "Entry 1 provides a relevant, evidenced reference on reserved example domains; entry 2 is an unrelated sales page with withheld judge-directed text."
+    }
+  ],
+  "payouts": [
+    {
+      "scenario": "basics",
+      "who": "alice",
+      "expected": "2000000000000000",
+      "contractDelta": "2000000000000000",
+      "recipientDelta": "2000000000000000",
+      "hash": "0x19a5bc8a09113ebf0a6feb24b75c7d2fa439c57293a814ff84ae89da19d8ba14",
+      "finalized": "yes"
+    },
+    {
+      "scenario": "basics",
+      "who": "bob",
+      "expected": "2000000000000000",
+      "contractDelta": "2000000000000000",
+      "recipientDelta": "2000000000000000",
+      "hash": "0xeb71b642edc124af7af699af63a21a84fbbd4f271713f388130a6b44c5158b57",
+      "finalized": "yes"
+    },
+    {
+      "scenario": "basics",
+      "who": "host",
+      "expected": "12000000000000000",
+      "contractDelta": "12000000000000000",
+      "recipientDelta": "12000000000000000",
+      "hash": "0xbfb3e298e8f29bd7916223179ce5b3e950cbbed0a69631cc209982a5936f6a94",
+      "finalized": "yes"
+    },
+    {
+      "scenario": "adversarial",
+      "who": "host",
+      "expected": "4000000000000000",
+      "contractDelta": "4000000000000000",
+      "recipientDelta": "4000000000000000",
+      "hash": "0x7a7fc69485cc1b97060308f5acbb581085e1cbaae1a5104094b9e16f012435bb",
+      "finalized": "yes"
+    },
+    {
+      "scenario": "adversarial",
+      "who": "alice",
+      "expected": "2000000000000000",
+      "contractDelta": "2000000000000000",
+      "recipientDelta": "2000000000000000",
+      "hash": "0xb425d479d30cb0abdfbaca63fd3f8e23e3eed4d23f4171c6407c039a18c5cb79",
+      "finalized": "yes"
+    },
+    {
+      "scenario": "adversarial",
+      "who": "bob",
+      "expected": "2000000000000000",
+      "contractDelta": "2000000000000000",
+      "recipientDelta": "2000000000000000",
+      "hash": "0x9867cdfc07ef522efa812f15494324abf9410dc6a1e22f6b5ef1bc8e0923f4a1",
+      "finalized": "yes"
+    },
+    {
+      "scenario": "adversarial",
+      "who": "carol",
+      "expected": "2000000000000000",
+      "contractDelta": "2000000000000000",
+      "recipientDelta": "2000000000000000",
+      "hash": "0xf3997807079f45f920dc34163c34182b1515bae9ec386a2351f202c128155bec",
+      "finalized": "yes"
+    },
+    {
+      "scenario": "cancel",
+      "who": "host",
+      "expected": "8000000000000000",
+      "contractDelta": "8000000000000000",
+      "recipientDelta": "8000000000000000",
+      "hash": "0x5205575620a60df07ce12aa5a0e4613c0465cc8cd21f1468c6701280ba18d980",
+      "finalized": "yes"
+    },
+    {
+      "scenario": "cancel",
+      "who": "alice",
+      "expected": "2000000000000000",
+      "contractDelta": "2000000000000000",
+      "recipientDelta": "2000000000000000",
+      "hash": "0xa0af564cce8858a5029f53a693848bfacda2a53aa5cc4abee4d57e99119133b7",
+      "finalized": "yes"
+    },
+    {
+      "scenario": "cancel",
+      "who": "bob",
+      "expected": "2000000000000000",
+      "contractDelta": "2000000000000000",
+      "recipientDelta": "2000000000000000",
+      "hash": "0x4fc20cf93798bd7a67670ed2124f4c62167d6fca085aa59789a512c240db71cc",
+      "finalized": "yes"
+    },
+    {
+      "scenario": "timeout",
+      "who": "host",
+      "expected": "6000000000000000",
+      "contractDelta": "6000000000000000",
+      "recipientDelta": "6000000000000000",
+      "hash": "0xd19ece9f13c54246be2015c24be9159dd3c33e52a2d01bc73c9c9745b0067532",
+      "finalized": "yes"
+    },
+    {
+      "scenario": "timeout",
+      "who": "alice",
+      "expected": "2000000000000000",
+      "contractDelta": "2000000000000000",
+      "recipientDelta": "2000000000000000",
+      "hash": "0x22f9dc4f4c4e6730451de93816480d871ee3622be1ed9044ba8afbbc5989be43",
+      "finalized": "yes"
+    },
+    {
+      "scenario": "timeout",
+      "who": "bob",
+      "expected": "2000000000000000",
+      "contractDelta": "2000000000000000",
+      "recipientDelta": "2000000000000000",
+      "hash": "0x16cfb14fe9d3588a796c1044b3b42209df5bdf3b1cc07706fd5bbecb1329d138",
+      "finalized": "yes"
+    },
+    {
+      "scenario": "timeout",
+      "who": "carol",
+      "expected": "2000000000000000",
+      "contractDelta": "2000000000000000",
+      "recipientDelta": "2000000000000000",
+      "hash": "0x9a2d1028d970efe28975883e05e2ce10661a4ac611d8298f86a784d388f58b11",
+      "finalized": "yes"
+    },
+    {
+      "scenario": "tournament",
+      "who": "alice",
+      "expected": "8000000000000000",
+      "contractDelta": "8000000000000000",
+      "recipientDelta": "8000000000000000",
+      "hash": "0x403576285b0785940066ac5c1bd75c61b58fa6d66a612b7cbf42eac8399b8ed8",
+      "finalized": "yes"
+    },
+    {
+      "scenario": "tournament",
+      "who": "bob",
+      "expected": "8000000000000000",
+      "contractDelta": "8000000000000000",
+      "recipientDelta": "8000000000000000",
+      "hash": "0xf098c2ab82793e45c658719e365c499695ccf89772955c2b135a174d95d55208",
+      "finalized": "yes"
+    },
+    {
+      "scenario": "tournament",
+      "who": "carol",
+      "expected": "2000000000000000",
+      "contractDelta": "2000000000000000",
+      "recipientDelta": "2000000000000000",
+      "hash": "0x8fe10a756ad78b44258135aa6ae7a301cfb0c5fce84c5fab3a2823e824fc32e8",
+      "finalized": "yes"
+    },
+    {
+      "scenario": "strike",
+      "who": "host",
+      "expected": "2000000000000000",
+      "contractDelta": "2000000000000000",
+      "recipientDelta": "2000000000000000",
+      "hash": "0xeb4013a3706bc0e1813a83bcc4cb4c16f13d63b09b59fbf4b1b8e9ac91fe91cd",
+      "finalized": "yes"
+    },
+    {
+      "scenario": "strike",
+      "who": "alice",
+      "expected": "10000000000000000",
+      "contractDelta": "10000000000000000",
+      "recipientDelta": "10000000000000000",
+      "hash": "0xd7fb9ea5e49046f4f2a408e967c6a6895277498a63b3345499422977ff6a66eb",
+      "finalized": "yes"
+    },
+    {
+      "scenario": "strike",
+      "who": "bob",
+      "expected": "6000000000000000",
+      "contractDelta": "6000000000000000",
+      "recipientDelta": "6000000000000000",
+      "hash": "0x745c16d264bc8a4bb7cc9dd2943156acbf80b0a2acf951834acb9b142506e0d7",
+      "finalized": "yes"
+    }
+  ],
+  "scenarios": [
+    {
+      "name": "basics",
+      "note": "open a round, top it up, enter, withdraw, remove an entry and cancel; every refund is claimed and checked",
+      "status": "passed",
+      "steps": [
+        {
+          "label": "create_round (prize 0.01 GEN)",
+          "fn": "create_round",
+          "caller": "host",
+          "value": "10000000000000000",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x469fa610ef7853fd4408ac05ef7f323dd50559c8502af1531d6913e60bf3febf",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "top_up",
+          "fn": "top_up",
+          "caller": "host",
+          "value": "2000000000000000",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xea0871303d4cf79c2c1b383d9c1b53b17803ddd41f9b3d3661812f366e537da8",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "enter (alice)",
+          "fn": "enter",
+          "caller": "alice",
+          "value": "2000000000000000",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x7a1b59a1a3eb5b6eb9471266e0931036350d535b32865c920a3070bf1cdf59e7",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "enter (bob)",
+          "fn": "enter",
+          "caller": "bob",
+          "value": "2000000000000000",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xc63d4c2e5f2992b2208284482d95aa8b7a3dfee70e77e6014cfea9fdfff292a1",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "withdraw_entry (alice)",
+          "fn": "withdraw_entry",
+          "caller": "alice",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xa0b732af1162a738185ec9dd92028ebd23472acadf8c502e4dc6549d2c53028b",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "claim (alice, withdrawn bond)",
+          "fn": "claim",
+          "caller": "alice",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x19a5bc8a09113ebf0a6feb24b75c7d2fa439c57293a814ff84ae89da19d8ba14",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "remove_entry (bob)",
+          "fn": "remove_entry",
+          "caller": "host",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x7d21bd0564cb102343c10edde8809ec0370f9154f69087e610bc00586a427c2d",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "claim (bob, removed entry)",
+          "fn": "claim",
+          "caller": "bob",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xeb71b642edc124af7af699af63a21a84fbbd4f271713f388130a6b44c5158b57",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "cancel_round",
+          "fn": "cancel_round",
+          "caller": "host",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x3b59730601a3a4a0251df2c967b434636c0565923772a374a1779dc0dd6433bd",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "claim (host, cancelled prize)",
+          "fn": "claim",
+          "caller": "host",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xbfb3e298e8f29bd7916223179ce5b3e950cbbed0a69631cc209982a5936f6a94",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        }
+      ],
+      "checks": [
+        {
+          "name": "create_round (prize 0.01 GEN) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "the new round is the newest one of the host",
+          "ok": true,
+          "detail": "id 0, rounds before 0"
+        },
+        {
+          "name": "the round is open with the prize held",
+          "ok": true,
+          "detail": "OPEN, pool 0.01 GEN"
+        },
+        {
+          "name": "the round carries the terms it was opened with",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "the entry deadline is about 15 minutes ahead",
+          "ok": true,
+          "detail": "deadline in 894s"
+        },
+        {
+          "name": "the price of a point is only an estimate while the round is open",
+          "ok": true,
+          "detail": "0.001666666666666666 GEN"
+        },
+        {
+          "name": "the books balance",
+          "ok": true,
+          "detail": "deposited 0.01 GEN, claimed 0 GEN, owed 0 GEN, locked 0.01 GEN"
+        },
+        {
+          "name": "the prize is locked in the books",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "top_up succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "the top-up grows the prize and the pool",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "enter (alice) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "enter (bob) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "both entries are stored with the bond held",
+          "ok": true,
+          "detail": "bonds 0.004 GEN"
+        },
+        {
+          "name": "the entrant finds the round in rounds_of",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "the books balance",
+          "ok": true,
+          "detail": "deposited 0.016 GEN, claimed 0 GEN, owed 0 GEN, locked 0.016 GEN"
+        },
+        {
+          "name": "withdraw_entry (alice) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "the withdrawal frees the slot and credits the bond",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "claim (alice, withdrawn bond) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "alice's credit is cleared",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "the contract's balance fell by exactly 0.002 GEN",
+          "ok": true,
+          "detail": "fell by 0.002 GEN"
+        },
+        {
+          "name": "alice received the money",
+          "ok": true,
+          "detail": "gained 0.002 GEN of 0.002 GEN"
+        },
+        {
+          "name": "remove_entry (bob) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "the removal credits the bond to the entrant",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "claim (bob, removed entry) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "bob's credit is cleared",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "the contract's balance fell by exactly 0.002 GEN",
+          "ok": true,
+          "detail": "fell by 0.002 GEN"
+        },
+        {
+          "name": "bob received the money",
+          "ok": true,
+          "detail": "gained 0.002 GEN of 0.002 GEN"
+        },
+        {
+          "name": "cancel_round succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "the cancelled round holds nothing",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "the prize and the top-up are credited to the host",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "claim (host, cancelled prize) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "host's credit is cleared",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "the contract's balance fell by exactly 0.012 GEN",
+          "ok": true,
+          "detail": "fell by 0.012 GEN"
+        },
+        {
+          "name": "host received the money",
+          "ok": true,
+          "detail": "gained 0.012 GEN of 0.012 GEN"
+        },
+        {
+          "name": "the books balance",
+          "ok": true,
+          "detail": "deposited 0.016 GEN, claimed 0.016 GEN, owed 0 GEN, locked 0 GEN"
+        },
+        {
+          "name": "the books recomputed from scratch agree",
+          "ok": true,
+          "detail": "{\"ok\":true,\"owed\":\"0\",\"locked\":\"0\"}"
+        },
+        {
+          "name": "the contract's balance equals what the books say is inside",
+          "ok": true,
+          "detail": "native 0 GEN, deposited 0.016 GEN, claimed 0.016 GEN"
+        }
+      ],
+      "notes": [],
+      "rpcRequests": 132
+    },
+    {
+      "name": "adversarial",
+      "note": "calls that must be refused leave the contract exactly as it was",
+      "status": "passed",
+      "steps": [
+        {
+          "label": "create_round (for the refusals)",
+          "fn": "create_round",
+          "caller": "host",
+          "value": "4000000000000000",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xa8c1876899026f98a45eec376f3ba22e254a964d6650c964964e22e616dc93c3",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "enter (alice)",
+          "fn": "enter",
+          "caller": "alice",
+          "value": "2000000000000000",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xf6063925df1ac901ca0ee00e2cd0d00cef9786ea2bc159cf66e2fffaf1b235fb",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "a round with a bond below the minimum",
+          "fn": "create_round",
+          "caller": "host",
+          "value": "4000000000000000",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0xc6f19cee3ee6db34c6376c15ee8abcd9bf2f1f3ccca57e76386bbc155e2bdd93",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "4000000000000000"
+        },
+        {
+          "label": "a round that needs fewer than 3 entries",
+          "fn": "create_round",
+          "caller": "host",
+          "value": "4000000000000000",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0xe5666cc4762c0ce4db4e741c292a525a69edbe379832df25b4740fe3d1b997d0",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "4000000000000000"
+        },
+        {
+          "label": "a round for 9 entries",
+          "fn": "create_round",
+          "caller": "host",
+          "value": "4000000000000000",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x1e855515a225c22b7b924cb60b7830e17b731ca7c0168a663d186ec2f18698f9",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "4000000000000000"
+        },
+        {
+          "label": "a bar above 90",
+          "fn": "create_round",
+          "caller": "host",
+          "value": "4000000000000000",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0xd2780da44f8c1c16397a33da03d90da6f917e9bf0971fd9321780a578af78217",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "4000000000000000"
+        },
+        {
+          "label": "a prize below the minimum",
+          "fn": "create_round",
+          "caller": "host",
+          "value": "1000000000000000",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x92a8ff8c6a8fae15302bbd4c93bd2f9d870443bb199574a0dc00e5114e6d8f57",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "1000000000000000"
+        },
+        {
+          "label": "a top-up by a stranger",
+          "fn": "top_up",
+          "caller": "bob",
+          "value": "1000000000000000",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0xc28a18b9124d5ab8df4a1ba30b48206a48b483e1d06b0e471c6d1938340344e6",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "1000000000000000"
+        },
+        {
+          "label": "a top-up of nothing",
+          "fn": "top_up",
+          "caller": "host",
+          "value": "0",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x31ea135e9104c835930a61ab2f51bbb70baa6886779d6f2d106582a99b16061c",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR"
+        },
+        {
+          "label": "a removal by a stranger",
+          "fn": "remove_entry",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0xc0fafdc7180217386558516f199d2b52e55c696215f5295370fe0a78e6972ab9",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR"
+        },
+        {
+          "label": "a removal by another entrant",
+          "fn": "remove_entry",
+          "caller": "bob",
+          "value": "0",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x00f1ed0ee6ccdf5a600da7e881feb63ac9f7e307265b6e796f2cdf0984593b80",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR"
+        },
+        {
+          "label": "a withdrawal by someone with no entry",
+          "fn": "withdraw_entry",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x43b508b95e246af3099d127f865a9dcc920460bba44824fe3d36b90c13047c00",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR"
+        },
+        {
+          "label": "a cancellation by a stranger before the entry time ends",
+          "fn": "cancel_round",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x8fb0ca3821a114779065efd4fd847cca37bdf45301c1b1a2789aaf78fda74057",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR"
+        },
+        {
+          "label": "a claim with nothing credited",
+          "fn": "claim",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x459258f9c407077ba78ef56f09b471bcbc6dd2b7f59f4b8e3355567227a6f11e",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR"
+        },
+        {
+          "label": "starting a round that has too few entries",
+          "fn": "start_round",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0xa05c7bde25dc81ce42f14f6cdc5b875edb50388ecbd1eb86c8cac4adbeb471d6",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR"
+        },
+        {
+          "label": "playing a round that has not started",
+          "fn": "play_next",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0xc5044d9ac3552712a3f42ffcf90e42ab6c10d1ea53e423c88ffdfcd468bfb643",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR"
+        },
+        {
+          "label": "finalizing a round that has not started",
+          "fn": "finalize_round",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0xe0546acb5497ea063937aa69889f5b476cec667337c4cdf48cd09d6a582095d6",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR"
+        },
+        {
+          "label": "a call on a round that does not exist",
+          "fn": "top_up",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0xb0cb22ff32dea4cd95151f76344d798e687017b6ca23b9a459105926aaabe1ac",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR"
+        },
+        {
+          "label": "the host entering their own round",
+          "fn": "enter",
+          "caller": "host",
+          "value": "2000000000000000",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0xa71b5a34a5e666c4c3fb41fb0c8ffcbb169c698606378c433d3ecfc9d9aeeca7",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "2000000000000000"
+        },
+        {
+          "label": "a second entry from the same address",
+          "fn": "enter",
+          "caller": "alice",
+          "value": "2000000000000000",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x55022bdf12ded58c0c2d5eb81a43a7e1903d4fd608cb65763109f931cae4a672",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "2000000000000000"
+        },
+        {
+          "label": "an entry with a bond one wei short",
+          "fn": "enter",
+          "caller": "bob",
+          "value": "1999999999999999",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0xc48ff25dae22b89a5ebedc273b6f4c8bcd7728d5bfdf5dc4d488cd338ff458b5",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "1999999999999999"
+        },
+        {
+          "label": "an entry with a bond one wei too high",
+          "fn": "enter",
+          "caller": "bob",
+          "value": "2000000000000001",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x842d01f3f428365cf2c66a97cd079c52e59f45de8e425919585f683b58f93f23",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "2000000000000001"
+        },
+        {
+          "label": "an entry with a pitch that is too short",
+          "fn": "enter",
+          "caller": "bob",
+          "value": "2000000000000000",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x3426cb92aa110cfcf05642256369357fee26cd6dbe57f494ce2b5b5d019561f3",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "2000000000000000"
+        },
+        {
+          "label": "an entry with a one-letter name",
+          "fn": "enter",
+          "caller": "bob",
+          "value": "2000000000000000",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0xb4e1376f3890ecec9ccc6fc68834d7cdecdf42e74bff7f30ce5fe23f349bd8ed",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "2000000000000000"
+        },
+        {
+          "label": "a pitch that steers the judge",
+          "fn": "enter",
+          "caller": "bob",
+          "value": "2000000000000000",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x2230cb274b1925d10f0ccfd29d27bcb2105f8f3d9647b00b06b2fdb88a25bb84",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "2000000000000000"
+        },
+        {
+          "label": "evidence on a private address",
+          "fn": "enter",
+          "caller": "bob",
+          "value": "2000000000000000",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x5daf6335a1291f79010a200e0ed8c4658ee36152289493d0acb0cefaca031d5f",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "2000000000000000"
+        },
+        {
+          "label": "evidence on localhost",
+          "fn": "enter",
+          "caller": "bob",
+          "value": "2000000000000000",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x7dd7ef3f2be1faf396106169dedde509c8fd0c4038ebd32afe75d3d36e7fbd30",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "2000000000000000"
+        },
+        {
+          "label": "evidence with a password in the link",
+          "fn": "enter",
+          "caller": "bob",
+          "value": "2000000000000000",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x2943a47699e1776b00279c547cb122ba4435eef2b0e06c19f8fe6519aaf48515",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "2000000000000000"
+        },
+        {
+          "label": "evidence page already used (another spelling)",
+          "fn": "enter",
+          "caller": "bob",
+          "value": "2000000000000000",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x7aba519e2558fb4adad26bccb5f1c90c8b5e306a8d43bf2797280ea99f8c7ef4",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "2000000000000000"
+        },
+        {
+          "label": "a pitch copied from another entry",
+          "fn": "enter",
+          "caller": "bob",
+          "value": "2000000000000000",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0xfcb37e34830b39bd42e5bf387e1f8ba391ed1738b1f56c4429f92af7678d94c1",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "2000000000000000"
+        },
+        {
+          "label": "a pitch copied from another entry, in full-width letters",
+          "fn": "enter",
+          "caller": "bob",
+          "value": "2000000000000000",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x5b0eb7dc63e3330c73b28512d50cb0389244a45120d855ef0a7d476cbdd8e13a",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "2000000000000000"
+        },
+        {
+          "label": "a steering pitch in full-width letters",
+          "fn": "enter",
+          "caller": "bob",
+          "value": "2000000000000000",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x68f2873d497ed09bb8ab07abc9f7c3742a4fcf56d402c891ba658b3489f5381d",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "2000000000000000"
+        },
+        {
+          "label": "a pitch of symbols only",
+          "fn": "enter",
+          "caller": "bob",
+          "value": "2000000000000000",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x7c004412f41aed85b2147f62c73614a7638f64fdd257e9b23177db496d6b6c28",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "2000000000000000"
+        },
+        {
+          "label": "evidence page already used (upper-case scheme)",
+          "fn": "enter",
+          "caller": "bob",
+          "value": "2000000000000000",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x907e4392a2b6c3281e74b6580eff3f8d525e23e62f4cb25d6514d9d31a46130d",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "2000000000000000"
+        },
+        {
+          "label": "enter (bob)",
+          "fn": "enter",
+          "caller": "bob",
+          "value": "2000000000000000",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x18a84dc917ddc01ef9ce96dbd754763c3b9e1713a9c0440877a7f97ee1be0589",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "enter (carol)",
+          "fn": "enter",
+          "caller": "carol",
+          "value": "2000000000000000",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x05652ad40a46e870ef847637951f192082a81c7c701390bd8d98edab9286195c",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "an entry in a full round",
+          "fn": "enter",
+          "caller": "dave",
+          "value": "2000000000000000",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x961217d668e61890f91450214afa8310b58ad859c4f9ef1ed67b709ba6291f91",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "2000000000000000"
+        },
+        {
+          "label": "start_round (full round, by a stranger)",
+          "fn": "start_round",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x1293ea9d153d99eb4b91e6c323a54f51898dc1b48c942353a530c39b5ba254fc",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "a withdrawal after the start",
+          "fn": "withdraw_entry",
+          "caller": "alice",
+          "value": "0",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x51d8623ac9251fa363fbf0e16452f753c9b6867053427faa412ee9bbd0767ffe",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR"
+        },
+        {
+          "label": "a removal after the start",
+          "fn": "remove_entry",
+          "caller": "host",
+          "value": "0",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0xc5797dce790238e04bce3970d639c59d90d4cad9fdb014def816257015b8a5a3",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR"
+        },
+        {
+          "label": "the host cancelling after the start",
+          "fn": "cancel_round",
+          "caller": "host",
+          "value": "0",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0xf5293db16152a67418462951cb41d01f40930a4a5f911293e6e6626bd0381c3b",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR"
+        },
+        {
+          "label": "a top-up after the start",
+          "fn": "top_up",
+          "caller": "host",
+          "value": "1000000000000000",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x4b19ba8d07ab8ca27396e66b32c410510b38617fe0ed3c2cc564dfbba6d8ae11",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "1000000000000000"
+        },
+        {
+          "label": "an entry after the start",
+          "fn": "enter",
+          "caller": "bob",
+          "value": "2000000000000000",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x4e678da801792247c6dd7b333d297cf8612495a7e9a0395648e2af0d33fdec67",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "2000000000000000"
+        },
+        {
+          "label": "starting a round twice",
+          "fn": "start_round",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0xed678dca1a146a34543f0448156deb1f1b4424bf744cd31a005ecbee8f0602da",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR"
+        },
+        {
+          "label": "finalizing while matches can still be played",
+          "fn": "finalize_round",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x345db05172ca83429e32fbefb9952c249ec68c8bf3f0286f4657bfc202880cb9",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR"
+        },
+        {
+          "label": "playing after the playing time",
+          "fn": "play_next",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x8f537fce0097b79fbd0d8837f9dd21c16d4a8e1c5666d72e7818b925907f2a08",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR"
+        },
+        {
+          "label": "finalize_round (nobody played)",
+          "fn": "finalize_round",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xd770bde0f004cf7c5496b7fff1191449c9349e60501cc4883fd2b76a925c84e1",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "finalizing twice",
+          "fn": "finalize_round",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0xa516da023dd0b701da5b26053408f7d74c9d39aff5f6e86fe810a08237469f44",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR"
+        },
+        {
+          "label": "cancelling a finished round",
+          "fn": "cancel_round",
+          "caller": "host",
+          "value": "0",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x6cbf68e4fdc2cb3b70d301442225aab6d5122f0361f3e2652e3c06313f666875",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR"
+        },
+        {
+          "label": "claim (host, adversarial round refunds)",
+          "fn": "claim",
+          "caller": "host",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x7a7fc69485cc1b97060308f5acbb581085e1cbaae1a5104094b9e16f012435bb",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "claim (alice, adversarial round refunds)",
+          "fn": "claim",
+          "caller": "alice",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xb425d479d30cb0abdfbaca63fd3f8e23e3eed4d23f4171c6407c039a18c5cb79",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "claim (bob, adversarial round refunds)",
+          "fn": "claim",
+          "caller": "bob",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x9867cdfc07ef522efa812f15494324abf9410dc6a1e22f6b5ef1bc8e0923f4a1",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "claim (carol, adversarial round refunds)",
+          "fn": "claim",
+          "caller": "carol",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xf3997807079f45f920dc34163c34182b1515bae9ec386a2351f202c128155bec",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        }
+      ],
+      "checks": [
+        {
+          "name": "create_round (for the refusals) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "the new round is the newest one of the host",
+          "ok": true,
+          "detail": "id 1, rounds before 1"
+        },
+        {
+          "name": "enter (alice) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "a round with a bond below the minimum is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "a round with a bond below the minimum changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "a round that needs fewer than 3 entries is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "a round that needs fewer than 3 entries changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "a round for 9 entries is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "a round for 9 entries changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "a bar above 90 is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "a bar above 90 changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "a prize below the minimum is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "a prize below the minimum changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "a top-up by a stranger is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "a top-up by a stranger changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "a top-up of nothing is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "a top-up of nothing changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "a removal by a stranger is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "a removal by a stranger changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "a removal by another entrant is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "a removal by another entrant changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "a withdrawal by someone with no entry is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "a withdrawal by someone with no entry changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "a cancellation by a stranger before the entry time ends is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "a cancellation by a stranger before the entry time ends changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "a claim with nothing credited is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "a claim with nothing credited changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "starting a round that has too few entries is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "starting a round that has too few entries changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "playing a round that has not started is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "playing a round that has not started changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "finalizing a round that has not started is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "finalizing a round that has not started changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "a call on a round that does not exist is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "a call on a round that does not exist changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "the host entering their own round is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "the host entering their own round changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "a second entry from the same address is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "a second entry from the same address changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "an entry with a bond one wei short is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "an entry with a bond one wei short changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "an entry with a bond one wei too high is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "an entry with a bond one wei too high changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "an entry with a pitch that is too short is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "an entry with a pitch that is too short changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "an entry with a one-letter name is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "an entry with a one-letter name changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "a pitch that steers the judge is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "a pitch that steers the judge changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "evidence on a private address is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "evidence on a private address changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "evidence on localhost is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "evidence on localhost changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "evidence with a password in the link is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "evidence with a password in the link changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "evidence page already used (another spelling) is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "evidence page already used (another spelling) changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "a pitch copied from another entry is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "a pitch copied from another entry changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "a pitch copied from another entry, in full-width letters is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "a pitch copied from another entry, in full-width letters changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "a steering pitch in full-width letters is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "a steering pitch in full-width letters changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "a pitch of symbols only is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "a pitch of symbols only changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "evidence page already used (upper-case scheme) is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "evidence page already used (upper-case scheme) changed no totals",
+          "ok": true,
+          "detail": "2/3/0/0/0/0/0/1/3/22000000000000000/16000000000000000/0/6000000000000000/true"
+        },
+        {
+          "name": "enter (bob) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "enter (carol) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "the round is full",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "an entry in a full round is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "an entry in a full round changed no totals",
+          "ok": true,
+          "detail": "2/5/0/0/0/0/0/1/3/26000000000000000/16000000000000000/0/10000000000000000/true"
+        },
+        {
+          "name": "start_round (full round, by a stranger) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "the round is playing with the fixed schedule",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "the price of a point is final and is the prize over six points",
+          "ok": true,
+          "detail": "0.000666666666666666 GEN"
+        },
+        {
+          "name": "a withdrawal after the start is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "a withdrawal after the start changed no totals",
+          "ok": true,
+          "detail": "2/5/0/0/0/0/0/1/3/26000000000000000/16000000000000000/0/10000000000000000/true"
+        },
+        {
+          "name": "a removal after the start is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "a removal after the start changed no totals",
+          "ok": true,
+          "detail": "2/5/0/0/0/0/0/1/3/26000000000000000/16000000000000000/0/10000000000000000/true"
+        },
+        {
+          "name": "the host cancelling after the start is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "the host cancelling after the start changed no totals",
+          "ok": true,
+          "detail": "2/5/0/0/0/0/0/1/3/26000000000000000/16000000000000000/0/10000000000000000/true"
+        },
+        {
+          "name": "a top-up after the start is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "a top-up after the start changed no totals",
+          "ok": true,
+          "detail": "2/5/0/0/0/0/0/1/3/26000000000000000/16000000000000000/0/10000000000000000/true"
+        },
+        {
+          "name": "an entry after the start is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "an entry after the start changed no totals",
+          "ok": true,
+          "detail": "2/5/0/0/0/0/0/1/3/26000000000000000/16000000000000000/0/10000000000000000/true"
+        },
+        {
+          "name": "starting a round twice is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "starting a round twice changed no totals",
+          "ok": true,
+          "detail": "2/5/0/0/0/0/0/1/3/26000000000000000/16000000000000000/0/10000000000000000/true"
+        },
+        {
+          "name": "finalizing while matches can still be played is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "finalizing while matches can still be played changed no totals",
+          "ok": true,
+          "detail": "2/5/0/0/0/0/0/1/3/26000000000000000/16000000000000000/0/10000000000000000/true"
+        },
+        {
+          "name": "playing after the playing time is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "playing after the playing time changed no totals",
+          "ok": true,
+          "detail": "2/5/0/0/0/0/0/1/3/26000000000000000/16000000000000000/0/10000000000000000/true"
+        },
+        {
+          "name": "finalize_round (nobody played) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "the round is done and nothing was earned",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "finalizing twice is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "finalizing twice changed no totals",
+          "ok": true,
+          "detail": "2/5/0/0/3/0/1/1/3/26000000000000000/16000000000000000/10000000000000000/0/true"
+        },
+        {
+          "name": "cancelling a finished round is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "cancelling a finished round changed no totals",
+          "ok": true,
+          "detail": "2/5/0/0/3/0/1/1/3/26000000000000000/16000000000000000/10000000000000000/0/true"
+        },
+        {
+          "name": "claim (host, adversarial round refunds) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "host's credit is cleared",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "the contract's balance fell by exactly 0.004 GEN",
+          "ok": true,
+          "detail": "fell by 0.004 GEN"
+        },
+        {
+          "name": "host received the money",
+          "ok": true,
+          "detail": "gained 0.004 GEN of 0.004 GEN"
+        },
+        {
+          "name": "claim (alice, adversarial round refunds) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "alice's credit is cleared",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "the contract's balance fell by exactly 0.002 GEN",
+          "ok": true,
+          "detail": "fell by 0.002 GEN"
+        },
+        {
+          "name": "alice received the money",
+          "ok": true,
+          "detail": "gained 0.002 GEN of 0.002 GEN"
+        },
+        {
+          "name": "claim (bob, adversarial round refunds) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "bob's credit is cleared",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "the contract's balance fell by exactly 0.002 GEN",
+          "ok": true,
+          "detail": "fell by 0.002 GEN"
+        },
+        {
+          "name": "bob received the money",
+          "ok": true,
+          "detail": "gained 0.002 GEN of 0.002 GEN"
+        },
+        {
+          "name": "claim (carol, adversarial round refunds) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "carol's credit is cleared",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "the contract's balance fell by exactly 0.002 GEN",
+          "ok": true,
+          "detail": "fell by 0.002 GEN"
+        },
+        {
+          "name": "carol received the money",
+          "ok": true,
+          "detail": "gained 0.002 GEN of 0.002 GEN"
+        },
+        {
+          "name": "dave has nothing to claim (adversarial round refunds)",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "the books balance",
+          "ok": true,
+          "detail": "deposited 0.026 GEN, claimed 0.026 GEN, owed 0 GEN, locked 0 GEN"
+        },
+        {
+          "name": "the books recomputed from scratch agree",
+          "ok": true,
+          "detail": "{\"ok\":true,\"owed\":\"0\",\"locked\":\"0\"}"
+        },
+        {
+          "name": "the contract's balance equals what the books say is inside",
+          "ok": true,
+          "detail": "native 0.055 GEN, deposited 0.026 GEN, claimed 0.026 GEN; plus 0 GEN held before this run and 0.055 GEN kept from refused payable calls"
+        }
+      ],
+      "notes": [
+        "Studionet kept 0.055 GEN that was attached to refused payable calls; the books cannot see it and the balance check allows for it"
+      ],
+      "rpcRequests": 525
+    },
+    {
+      "name": "cancel",
+      "note": "a cancelled round returns the prize, the top-up and the bonds",
+      "status": "passed",
+      "steps": [
+        {
+          "label": "create_round (to be cancelled)",
+          "fn": "create_round",
+          "caller": "host",
+          "value": "5000000000000000",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xb87c10e8f2067edc46170eaafaf4859f26a388f5e6156b5a5b2a6ed67866ce1b",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "enter (alice)",
+          "fn": "enter",
+          "caller": "alice",
+          "value": "2000000000000000",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x9f5e684e52154298576bfc8f8b33fb3629d1b248998297ae5cc4e9403103e3c3",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "enter (bob)",
+          "fn": "enter",
+          "caller": "bob",
+          "value": "2000000000000000",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x83a59a566f8e0429dfe099a97d4a8c53ecb2b3893cd01e203921be2d98659b86",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "top_up",
+          "fn": "top_up",
+          "caller": "host",
+          "value": "3000000000000000",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xf1597b5ca274f3f2c381b1220f462c9e206b73e271b9ee74cce81ee45df2cef2",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "a cancellation by an entrant",
+          "fn": "cancel_round",
+          "caller": "carol",
+          "value": "0",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0xdf2bbb8c0e3fb5de2bc7d1d860eb4387c2ec499f9e3beca0fa6e041c94941f7f",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR"
+        },
+        {
+          "label": "cancel_round",
+          "fn": "cancel_round",
+          "caller": "host",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x34453d6044c7da06533d5321e27d9175d6f0e8f6c01e45decdcd0d1ff03a475f",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "playing a cancelled round",
+          "fn": "play_next",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0x68d47e2c2649151c35e4d4d70d584fcafe3659d08ae2b19d54910f06473c8b08",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR"
+        },
+        {
+          "label": "entering a cancelled round",
+          "fn": "enter",
+          "caller": "carol",
+          "value": "2000000000000000",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0xb0affc8bf410db9161bee476077f905523f0dcf25c4cb64ba5365a8b9509db88",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR",
+          "keptValue": "2000000000000000"
+        },
+        {
+          "label": "claim (host, cancelled round)",
+          "fn": "claim",
+          "caller": "host",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x5205575620a60df07ce12aa5a0e4613c0465cc8cd21f1468c6701280ba18d980",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "claim (alice, cancelled round)",
+          "fn": "claim",
+          "caller": "alice",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xa0af564cce8858a5029f53a693848bfacda2a53aa5cc4abee4d57e99119133b7",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "claim (bob, cancelled round)",
+          "fn": "claim",
+          "caller": "bob",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x4fc20cf93798bd7a67670ed2124f4c62167d6fca085aa59789a512c240db71cc",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        }
+      ],
+      "checks": [
+        {
+          "name": "create_round (to be cancelled) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "the new round is the newest one of the host",
+          "ok": true,
+          "detail": "id 2, rounds before 2"
+        },
+        {
+          "name": "enter (alice) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "enter (bob) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "top_up succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "a cancellation by an entrant is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "a cancellation by an entrant changed no totals",
+          "ok": true,
+          "detail": "3/7/0/0/3/0/1/1/7/38000000000000000/26000000000000000/0/12000000000000000/true"
+        },
+        {
+          "name": "cancel_round succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "the round is cancelled and empty",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "the host is credited the prize and the top-up",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "each entrant is credited the bond",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "playing a cancelled round is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "playing a cancelled round changed no totals",
+          "ok": true,
+          "detail": "3/7/0/0/3/0/1/2/7/38000000000000000/26000000000000000/12000000000000000/0/true"
+        },
+        {
+          "name": "entering a cancelled round is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "entering a cancelled round changed no totals",
+          "ok": true,
+          "detail": "3/7/0/0/3/0/1/2/7/38000000000000000/26000000000000000/12000000000000000/0/true"
+        },
+        {
+          "name": "claim (host, cancelled round) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "host's credit is cleared",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "the contract's balance fell by exactly 0.008 GEN",
+          "ok": true,
+          "detail": "fell by 0.008 GEN"
+        },
+        {
+          "name": "host received the money",
+          "ok": true,
+          "detail": "gained 0.008 GEN of 0.008 GEN"
+        },
+        {
+          "name": "claim (alice, cancelled round) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "alice's credit is cleared",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "the contract's balance fell by exactly 0.002 GEN",
+          "ok": true,
+          "detail": "fell by 0.002 GEN"
+        },
+        {
+          "name": "alice received the money",
+          "ok": true,
+          "detail": "gained 0.002 GEN of 0.002 GEN"
+        },
+        {
+          "name": "claim (bob, cancelled round) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "bob's credit is cleared",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "the contract's balance fell by exactly 0.002 GEN",
+          "ok": true,
+          "detail": "fell by 0.002 GEN"
+        },
+        {
+          "name": "bob received the money",
+          "ok": true,
+          "detail": "gained 0.002 GEN of 0.002 GEN"
+        },
+        {
+          "name": "carol has nothing to claim (cancelled round)",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "dave has nothing to claim (cancelled round)",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "the books balance",
+          "ok": true,
+          "detail": "deposited 0.038 GEN, claimed 0.038 GEN, owed 0 GEN, locked 0 GEN"
+        },
+        {
+          "name": "the books recomputed from scratch agree",
+          "ok": true,
+          "detail": "{\"ok\":true,\"owed\":\"0\",\"locked\":\"0\"}"
+        },
+        {
+          "name": "the contract's balance equals what the books say is inside",
+          "ok": true,
+          "detail": "native 0.057 GEN, deposited 0.038 GEN, claimed 0.038 GEN; plus 0 GEN held before this run and 0.057 GEN kept from refused payable calls"
+        }
+      ],
+      "notes": [
+        "Studionet kept 0.002 GEN that was attached to refused payable calls; the books cannot see it and the balance check allows for it"
+      ],
+      "rpcRequests": 141
+    },
+    {
+      "name": "timeout",
+      "note": "nobody runs the matches: no points, everything comes back",
+      "status": "passed",
+      "steps": [
+        {
+          "label": "create_round (a one-minute playing time)",
+          "fn": "create_round",
+          "caller": "host",
+          "value": "6000000000000000",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x23b6623ec3a578a7b674a347cc000383a2bece7cebc0117f957b5027d54230b6",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "enter (alice)",
+          "fn": "enter",
+          "caller": "alice",
+          "value": "2000000000000000",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x740b35bb1a7a788cfe401494fc5a55c5867be2cbfa7ef0b89177e8d0922a5990",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "enter (bob)",
+          "fn": "enter",
+          "caller": "bob",
+          "value": "2000000000000000",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x3f75a7f8e828b77b95edbdcee787ac930c8b4518fc3ab68b6f8e9dce64be2f40",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "enter (carol)",
+          "fn": "enter",
+          "caller": "carol",
+          "value": "2000000000000000",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x1b64ef7605f9d43f2d5d28721626eebf76b422c35a3a9948e490bbc4873ce924",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "start_round",
+          "fn": "start_round",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xd1506aebe0bacaa77b2710cb7ce2309d20577d8ffe0841284a9905b663c3eac1",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "playing after the playing time",
+          "fn": "play_next",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": true,
+          "attempt": 1,
+          "hash": "0xa2c73f9237d8f8fc16079be171848bf1626d5534f0bd5fe9f06bc4278abca167",
+          "ok": false,
+          "known": true,
+          "status": "ACCEPTED / ERROR"
+        },
+        {
+          "label": "finalize_round (by an entrant)",
+          "fn": "finalize_round",
+          "caller": "carol",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xd1f553fae8e167bdb572bf6b07c9d01d0917bfd53ba7f592e7259f769a206623",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "claim (host, timed-out round)",
+          "fn": "claim",
+          "caller": "host",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xd19ece9f13c54246be2015c24be9159dd3c33e52a2d01bc73c9c9745b0067532",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "claim (alice, timed-out round)",
+          "fn": "claim",
+          "caller": "alice",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x22f9dc4f4c4e6730451de93816480d871ee3622be1ed9044ba8afbbc5989be43",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "claim (bob, timed-out round)",
+          "fn": "claim",
+          "caller": "bob",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x16cfb14fe9d3588a796c1044b3b42209df5bdf3b1cc07706fd5bbecb1329d138",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "claim (carol, timed-out round)",
+          "fn": "claim",
+          "caller": "carol",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x9a2d1028d970efe28975883e05e2ce10661a4ac611d8298f86a784d388f58b11",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        }
+      ],
+      "checks": [
+        {
+          "name": "create_round (a one-minute playing time) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "the new round is the newest one of the host",
+          "ok": true,
+          "detail": "id 3, rounds before 3"
+        },
+        {
+          "name": "enter (alice) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "enter (bob) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "enter (carol) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "start_round succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "the playing deadline is one minute after the start",
+          "ok": true,
+          "detail": "60s"
+        },
+        {
+          "name": "playing after the playing time is refused by the contract",
+          "ok": true,
+          "detail": "ACCEPTED / ERROR"
+        },
+        {
+          "name": "playing after the playing time changed no totals",
+          "ok": true,
+          "detail": "4/10/0/0/3/0/1/2/10/50000000000000000/38000000000000000/0/12000000000000000/true"
+        },
+        {
+          "name": "finalize_round (by an entrant) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "every match is a timeout and nobody earned anything",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "the whole prize goes back to the host",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "each entrant gets the bond back",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "timeout round: points, payouts and the host's return follow from the matches",
+          "ok": true,
+          "detail": "points 0/0/0, paid 0 GEN, back to host 0.006 GEN"
+        },
+        {
+          "name": "timeout round: ranks are 1..n without gaps",
+          "ok": true,
+          "detail": "1,2,3"
+        },
+        {
+          "name": "timeout round: nobody earned more than two points per rival",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "claim (host, timed-out round) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "host's credit is cleared",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "the contract's balance fell by exactly 0.006 GEN",
+          "ok": true,
+          "detail": "fell by 0.006 GEN"
+        },
+        {
+          "name": "host received the money",
+          "ok": true,
+          "detail": "gained 0.006 GEN of 0.006 GEN"
+        },
+        {
+          "name": "claim (alice, timed-out round) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "alice's credit is cleared",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "the contract's balance fell by exactly 0.002 GEN",
+          "ok": true,
+          "detail": "fell by 0.002 GEN"
+        },
+        {
+          "name": "alice received the money",
+          "ok": true,
+          "detail": "gained 0.002 GEN of 0.002 GEN"
+        },
+        {
+          "name": "claim (bob, timed-out round) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "bob's credit is cleared",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "the contract's balance fell by exactly 0.002 GEN",
+          "ok": true,
+          "detail": "fell by 0.002 GEN"
+        },
+        {
+          "name": "bob received the money",
+          "ok": true,
+          "detail": "gained 0.002 GEN of 0.002 GEN"
+        },
+        {
+          "name": "claim (carol, timed-out round) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "carol's credit is cleared",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "the contract's balance fell by exactly 0.002 GEN",
+          "ok": true,
+          "detail": "fell by 0.002 GEN"
+        },
+        {
+          "name": "carol received the money",
+          "ok": true,
+          "detail": "gained 0.002 GEN of 0.002 GEN"
+        },
+        {
+          "name": "dave has nothing to claim (timed-out round)",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "the books balance",
+          "ok": true,
+          "detail": "deposited 0.05 GEN, claimed 0.05 GEN, owed 0 GEN, locked 0 GEN"
+        },
+        {
+          "name": "the books recomputed from scratch agree",
+          "ok": true,
+          "detail": "{\"ok\":true,\"owed\":\"0\",\"locked\":\"0\"}"
+        },
+        {
+          "name": "the contract's balance equals what the books say is inside",
+          "ok": true,
+          "detail": "native 0.057 GEN, deposited 0.05 GEN, claimed 0.05 GEN; plus 0 GEN held before this run and 0.057 GEN kept from refused payable calls"
+        }
+      ],
+      "notes": [],
+      "rpcRequests": 153
+    },
+    {
+      "name": "tournament",
+      "note": "the real AI judges a round of three in both orders; the result is followed to the end",
+      "status": "passed",
+      "steps": [
+        {
+          "label": "create_round (the tournament)",
+          "fn": "create_round",
+          "caller": "host",
+          "value": "12000000000000000",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xa0c55676d6ccd26371cff7c3bab1eb5ac0c392450568456a5d09727199d2f43e",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "enter (alice)",
+          "fn": "enter",
+          "caller": "alice",
+          "value": "2000000000000000",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xce58b5fec8acd4e922759198e6b8ec7e2094b2d37d513873164d2cbc436ea96d",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "enter (bob)",
+          "fn": "enter",
+          "caller": "bob",
+          "value": "2000000000000000",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x7199b839856210fdc4ee74010c6bde743a149b723556eb84b8d47097e5c97be6",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "enter (carol)",
+          "fn": "enter",
+          "caller": "carol",
+          "value": "2000000000000000",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x4a78c4acdb2aaee4ad09bcd80ddbc336018ea72c52e77ef9a1a73b116c9bbb31",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "start_round",
+          "fn": "start_round",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x4626b089c5553971a512dfd1dd5ba593e9cb3b6fb5806e97e6e1d23bfed2141f",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "play_next (match 0: Alice guide vs Bob reference)",
+          "fn": "play_next",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x2535c0d58a8a660040ba121bae267b88093a5231813cebe0a23ea259c3f48f44",
+          "ok": true,
+          "known": true,
+          "status": "UNDETERMINED / SUCCESS"
+        },
+        {
+          "label": "play_next (match 0: Alice guide vs Bob reference)",
+          "fn": "play_next",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xddfb79f61208439aeabc6a30f753ed215526f651bcef8c094f5648067a4aab92",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "play_next (match 1: Alice guide vs Carol shop)",
+          "fn": "play_next",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xd6f568d4c8fb61036d94665e607ef281380da658875f27f617ee01fe4484d740",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "play_next (match 2: Bob reference vs Carol shop)",
+          "fn": "play_next",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xf60f5cdb07997ed5c1ce2f19276ec437981dcd58dff7f0e1ca1ad1a194159ad1",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "finalize_round",
+          "fn": "finalize_round",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xc90e1e701115eec653ae1199f18b7adeaa9db40ee6d71b4e04823cfacc504fd7",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "claim (alice, tournament payouts)",
+          "fn": "claim",
+          "caller": "alice",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x403576285b0785940066ac5c1bd75c61b58fa6d66a612b7cbf42eac8399b8ed8",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "claim (bob, tournament payouts)",
+          "fn": "claim",
+          "caller": "bob",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xf098c2ab82793e45c658719e365c499695ccf89772955c2b135a174d95d55208",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "claim (carol, tournament payouts)",
+          "fn": "claim",
+          "caller": "carol",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x8fe10a756ad78b44258135aa6ae7a301cfb0c5fce84c5fab3a2823e824fc32e8",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        }
+      ],
+      "checks": [
+        {
+          "name": "create_round (the tournament) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "the new round is the newest one of the host",
+          "ok": true,
+          "detail": "id 4, rounds before 4"
+        },
+        {
+          "name": "enter (alice) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "enter (bob) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "enter (carol) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "three entries with evidence are in",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "the books balance",
+          "ok": true,
+          "detail": "deposited 0.068 GEN, claimed 0.05 GEN, owed 0 GEN, locked 0.018 GEN"
+        },
+        {
+          "name": "start_round succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "the price of a point is the prize over six points",
+          "ok": true,
+          "detail": "0.002 GEN"
+        },
+        {
+          "name": "play_next (match 0: Alice guide vs Bob reference) succeeds",
+          "ok": true,
+          "detail": "UNDETERMINED / SUCCESS"
+        },
+        {
+          "name": "play_next (match 0: Alice guide vs Bob reference) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "match 0: the match record is well formed",
+          "ok": true,
+          "detail": "{\"outcome\":2,\"by\":1,\"fit\":[50,50],\"win\":[\"B\",\"A\"]}"
+        },
+        {
+          "name": "match 0: two different readings never make a winner",
+          "ok": true,
+          "detail": "tie"
+        },
+        {
+          "name": "play_next (match 1: Alice guide vs Carol shop) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "match 1: the match record is well formed",
+          "ok": true,
+          "detail": "{\"outcome\":0,\"by\":1,\"fit\":[75,0],\"win\":[\"A\",\"A\"]}"
+        },
+        {
+          "name": "match 1: the winner cleared the bar",
+          "ok": true,
+          "detail": "fit 75"
+        },
+        {
+          "name": "play_next (match 2: Bob reference vs Carol shop) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "match 2: the match record is well formed",
+          "ok": true,
+          "detail": "{\"outcome\":0,\"by\":1,\"fit\":[75,0],\"win\":[\"A\",\"A\"]}"
+        },
+        {
+          "name": "match 2: the winner cleared the bar",
+          "ok": true,
+          "detail": "fit 75"
+        },
+        {
+          "name": "finalize_round succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "the round is done",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "tournament: points, payouts and the host's return follow from the matches",
+          "ok": true,
+          "detail": "points 3/3/0, paid 0.012 GEN, back to host 0 GEN"
+        },
+        {
+          "name": "tournament: ranks are 1..n without gaps",
+          "ok": true,
+          "detail": "1,2,3"
+        },
+        {
+          "name": "tournament: nobody earned more than two points per rival",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "the prize and the bonds left the lock",
+          "ok": true,
+          "detail": "locked 0.018 GEN -> 0 GEN"
+        },
+        {
+          "name": "what was credited is exactly the prize plus the bonds",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "alice's credit is the payout plus the bond",
+          "ok": true,
+          "detail": "0.006 GEN + 0.002 GEN"
+        },
+        {
+          "name": "bob's credit is the payout plus the bond",
+          "ok": true,
+          "detail": "0.006 GEN + 0.002 GEN"
+        },
+        {
+          "name": "carol's credit is the payout plus the bond",
+          "ok": true,
+          "detail": "0 GEN + 0.002 GEN"
+        },
+        {
+          "name": "the host is credited everything that was not earned",
+          "ok": true,
+          "detail": "0 GEN"
+        },
+        {
+          "name": "the books balance",
+          "ok": true,
+          "detail": "deposited 0.068 GEN, claimed 0.05 GEN, owed 0.018 GEN, locked 0 GEN"
+        },
+        {
+          "name": "host has nothing to claim (tournament payouts)",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "claim (alice, tournament payouts) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "alice's credit is cleared",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "the contract's balance fell by exactly 0.008 GEN",
+          "ok": true,
+          "detail": "fell by 0.008 GEN"
+        },
+        {
+          "name": "alice received the money",
+          "ok": true,
+          "detail": "gained 0.008 GEN of 0.008 GEN"
+        },
+        {
+          "name": "claim (bob, tournament payouts) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "bob's credit is cleared",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "the contract's balance fell by exactly 0.008 GEN",
+          "ok": true,
+          "detail": "fell by 0.008 GEN"
+        },
+        {
+          "name": "bob received the money",
+          "ok": true,
+          "detail": "gained 0.008 GEN of 0.008 GEN"
+        },
+        {
+          "name": "claim (carol, tournament payouts) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "carol's credit is cleared",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "the contract's balance fell by exactly 0.002 GEN",
+          "ok": true,
+          "detail": "fell by 0.002 GEN"
+        },
+        {
+          "name": "carol received the money",
+          "ok": true,
+          "detail": "gained 0.002 GEN of 0.002 GEN"
+        },
+        {
+          "name": "dave has nothing to claim (tournament payouts)",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "the books balance after every claim",
+          "ok": true,
+          "detail": "deposited 0.068 GEN, claimed 0.068 GEN, owed 0 GEN, locked 0 GEN"
+        },
+        {
+          "name": "the books recomputed from scratch agree",
+          "ok": true,
+          "detail": "{\"ok\":true,\"owed\":\"0\",\"locked\":\"0\"}"
+        },
+        {
+          "name": "the contract's balance equals what the books say is inside",
+          "ok": true,
+          "detail": "native 0.057 GEN, deposited 0.068 GEN, claimed 0.068 GEN; plus 0 GEN held before this run and 0.057 GEN kept from refused payable calls"
+        }
+      ],
+      "notes": [
+        "match 0 stayed pending (try 0); an evidence page could not be read",
+        "match 0: tie, fits 50/50, winner in each order B/A",
+        "match 1: A wins, fits 75/0, winner in each order A/A",
+        "match 2: A wins, fits 75/0, winner in each order A/A",
+        "final points 3/3/0 (alice/bob/carol); paid 0.012 GEN of 0.012 GEN; back to the host 0 GEN"
+      ],
+      "rpcRequests": 207
+    },
+    {
+      "name": "strike",
+      "note": "an evidence page that talks to the judge: the entry is flagged, earns nothing and loses its bond",
+      "status": "passed",
+      "steps": [
+        {
+          "label": "create_round (the strike round)",
+          "fn": "create_round",
+          "caller": "host",
+          "value": "12000000000000000",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x708825096070a935b6d2b2e5b6dc920b9a8dce05ac6ca794281679812fb4833f",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "enter (alice)",
+          "fn": "enter",
+          "caller": "alice",
+          "value": "2000000000000000",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x982cfe423febff3f63d06d7c075fe48badc49d855a2879cae26538d2e71615fb",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "enter (bob)",
+          "fn": "enter",
+          "caller": "bob",
+          "value": "2000000000000000",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x055e4a3d785ade4bdf62a5461dfc16b7802a31c71d4e85835af42ea09e007926",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "enter (carol)",
+          "fn": "enter",
+          "caller": "carol",
+          "value": "2000000000000000",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xcba906e08a64fc19963d1312641b9e838fe5b12e9601323a43aee681ae81816e",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "start_round",
+          "fn": "start_round",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x996c6ae5d0bb771286ca8bf521eceada8feda203fd78b91ef9b235b10b7a02de",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "play_next (match 0)",
+          "fn": "play_next",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xbe9e0660fd9a9d4c9bd0f624bd895207db59fda58cdf52fc31f5625aa20ac30c",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "play_next (match 1)",
+          "fn": "play_next",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x385850cca9929739e146b41b970c75248160b46215893734ad182317d105569b",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "play_next (match 2)",
+          "fn": "play_next",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x90b9db1739701974306707e3a909ce9cc9ace9f53421abd47d5cc0228cf4f084",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "finalize_round",
+          "fn": "finalize_round",
+          "caller": "outsider",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xdaadb216268341ef4ee59267c378b7365801e43a68b0ae674b1746f7965733bd",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "claim (host, strike round)",
+          "fn": "claim",
+          "caller": "host",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xeb4013a3706bc0e1813a83bcc4cb4c16f13d63b09b59fbf4b1b8e9ac91fe91cd",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "claim (alice, strike round)",
+          "fn": "claim",
+          "caller": "alice",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0xd7fb9ea5e49046f4f2a408e967c6a6895277498a63b3345499422977ff6a66eb",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        },
+        {
+          "label": "claim (bob, strike round)",
+          "fn": "claim",
+          "caller": "bob",
+          "value": "0",
+          "expectedFail": false,
+          "attempt": 1,
+          "hash": "0x745c16d264bc8a4bb7cc9dd2943156acbf80b0a2acf951834acb9b142506e0d7",
+          "ok": true,
+          "known": true,
+          "status": "ACCEPTED / SUCCESS"
+        }
+      ],
+      "checks": [
+        {
+          "name": "create_round (the strike round) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "the new round is the newest one of the host",
+          "ok": true,
+          "detail": "id 5, rounds before 5"
+        },
+        {
+          "name": "enter (alice) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "enter (bob) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "enter (carol) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "start_round succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "play_next (match 0) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "match 0: the match record is well formed",
+          "ok": true,
+          "detail": "{\"outcome\":0,\"by\":1,\"fit\":[75,50],\"win\":[\"A\",\"A\"]}"
+        },
+        {
+          "name": "match 0: the winner cleared the bar",
+          "ok": true,
+          "detail": "fit 75"
+        },
+        {
+          "name": "play_next (match 1) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "match 1: the match record is well formed",
+          "ok": true,
+          "detail": "{\"outcome\":0,\"by\":1,\"fit\":[75,0],\"win\":[\"A\",\"A\"]}"
+        },
+        {
+          "name": "match 1: the winner cleared the bar",
+          "ok": true,
+          "detail": "fit 75"
+        },
+        {
+          "name": "play_next (match 2) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "match 2: the match record is well formed",
+          "ok": true,
+          "detail": "{\"outcome\":0,\"by\":1,\"fit\":[75,0],\"win\":[\"A\",\"A\"]}"
+        },
+        {
+          "name": "match 2: the winner cleared the bar",
+          "ok": true,
+          "detail": "fit 75"
+        },
+        {
+          "name": "the entry whose page steers is flagged",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "the strike is counted once in the totals",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "finalize_round succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "strike round: points, payouts and the host's return follow from the matches",
+          "ok": true,
+          "detail": "points 4/2/0, paid 0.012 GEN, back to host 0.002 GEN"
+        },
+        {
+          "name": "strike round: ranks are 1..n without gaps",
+          "ok": true,
+          "detail": "1,2"
+        },
+        {
+          "name": "strike round: nobody earned more than two points per rival",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "the flagged entry has no points, no payout and no rank",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "its bond is not credited back to it",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "the host gets the forfeited bond on top of the unearned prize",
+          "ok": true,
+          "detail": "0.002 GEN"
+        },
+        {
+          "name": "the books balance",
+          "ok": true,
+          "detail": "deposited 0.086 GEN, claimed 0.068 GEN, owed 0.018 GEN, locked 0 GEN"
+        },
+        {
+          "name": "claim (host, strike round) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "host's credit is cleared",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "the contract's balance fell by exactly 0.002 GEN",
+          "ok": true,
+          "detail": "fell by 0.002 GEN"
+        },
+        {
+          "name": "host received the money",
+          "ok": true,
+          "detail": "gained 0.002 GEN of 0.002 GEN"
+        },
+        {
+          "name": "claim (alice, strike round) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "alice's credit is cleared",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "the contract's balance fell by exactly 0.01 GEN",
+          "ok": true,
+          "detail": "fell by 0.01 GEN"
+        },
+        {
+          "name": "alice received the money",
+          "ok": true,
+          "detail": "gained 0.01 GEN of 0.01 GEN"
+        },
+        {
+          "name": "claim (bob, strike round) succeeds",
+          "ok": true,
+          "detail": "ACCEPTED / SUCCESS"
+        },
+        {
+          "name": "bob's credit is cleared",
+          "ok": true,
+          "detail": "0"
+        },
+        {
+          "name": "the contract's balance fell by exactly 0.006 GEN",
+          "ok": true,
+          "detail": "fell by 0.006 GEN"
+        },
+        {
+          "name": "bob received the money",
+          "ok": true,
+          "detail": "gained 0.006 GEN of 0.006 GEN"
+        },
+        {
+          "name": "carol has nothing to claim (strike round)",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "dave has nothing to claim (strike round)",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "the books balance",
+          "ok": true,
+          "detail": "deposited 0.086 GEN, claimed 0.086 GEN, owed 0 GEN, locked 0 GEN"
+        },
+        {
+          "name": "the books recomputed from scratch agree",
+          "ok": true,
+          "detail": "{\"ok\":true,\"owed\":\"0\",\"locked\":\"0\"}"
+        },
+        {
+          "name": "the contract's balance equals what the books say is inside",
+          "ok": true,
+          "detail": "native 0.057 GEN, deposited 0.086 GEN, claimed 0.086 GEN; plus 0 GEN held before this run and 0.057 GEN kept from refused payable calls"
+        }
+      ],
+      "notes": [],
+      "rpcRequests": 165
+    },
+    {
+      "name": "views",
+      "note": "paging, the schedule, the tripwire preview and the books recomputed from scratch",
+      "status": "passed",
+      "steps": [],
+      "checks": [
+        {
+          "name": "list_rounds is newest first",
+          "ok": true,
+          "detail": "5,4,3"
+        },
+        {
+          "name": "list_rounds pages by offset",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "a page limit above 50 is clamped",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "rounds_of lists the host's rounds, newest first",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "rounds_of is empty for a stranger",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "the schedule for four entries is the six pairs in order",
+          "ok": true,
+          "detail": "[[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]]"
+        },
+        {
+          "name": "the tripwire flags a steering sentence",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "the tripwire flags a steering sentence in full-width letters",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "the tripwire leaves an ordinary sentence alone",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "credit_of answers for an address that never took part",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "the books recomputed from scratch agree",
+          "ok": true,
+          "detail": "{\"ok\":true,\"owed\":\"0\",\"locked\":\"0\"}"
+        },
+        {
+          "name": "get_round returns the entries and matches of a round",
+          "ok": true,
+          "detail": ""
+        },
+        {
+          "name": "get_match agrees with get_round",
+          "ok": true,
+          "detail": ""
+        }
+      ],
+      "notes": [],
+      "rpcRequests": 14
+    },
+    {
+      "name": "totals",
+      "note": "the contract's own books after the run",
+      "status": "passed",
+      "steps": [],
+      "checks": [
+        {
+          "name": "the contract's books balance at the end",
+          "ok": true,
+          "detail": "deposited 0.086 GEN, claimed 0.086 GEN, owed 0 GEN, locked 0 GEN"
+        },
+        {
+          "name": "this run left nothing locked in a round",
+          "ok": true,
+          "detail": "locked 0 GEN -> 0 GEN"
+        },
+        {
+          "name": "this run left nothing credited and unclaimed",
+          "ok": true,
+          "detail": "owed 0 GEN -> 0 GEN"
+        },
+        {
+          "name": "the books recomputed from scratch agree",
+          "ok": true,
+          "detail": "{\"ok\":true,\"owed\":\"0\",\"locked\":\"0\"}"
+        },
+        {
+          "name": "the contract's balance equals what the books say is inside, at the end",
+          "ok": true,
+          "detail": "native 0.057 GEN, deposited 0.086 GEN, claimed 0.086 GEN; plus 0 GEN held before this run and 0.057 GEN kept from refused payable calls"
+        },
+        {
+          "name": "every transfer sent out has arrived",
+          "ok": true,
+          "detail": "claimed 0.086 GEN"
+        }
+      ],
+      "notes": []
+    }
+  ],
+  "summary": {
+    "checks": 331,
+    "passed": 331,
+    "failed": 0,
+    "transactions": 110,
+    "skipped": 0
+  },
+  "balance": {
+    "heldBeforeThisRun": "0",
+    "keptFromRefusedPayableCalls": "57000000000000000",
+    "keptPossible": "57000000000000000",
+    "refusedPayableCalls": 26
+  }
+}

@@ -2,6 +2,8 @@
 // Usage: DEPLOY_KEY=0x... node scripts/deploy.mjs      (the address is also written to .matchplay-address)
 import { readFileSync, writeFileSync } from "node:fs";
 import { outcome } from "./receipt.mjs";
+import { installResilientFetch } from "./rpc.mjs";
+import { makePoller } from "./harness.mjs";
 
 export async function deploy(key = process.env.DEPLOY_KEY ?? process.env.HOST_KEY) {
   if (!/^0x[0-9a-fA-F]{64}$/.test(key ?? "")) {
@@ -9,16 +11,15 @@ export async function deploy(key = process.env.DEPLOY_KEY ?? process.env.HOST_KE
   }
   const sdk = await import("genlayer-js");
   const { studionet } = await import("genlayer-js/chains");
+  // A rate limit is waited out and a gateway page retried (the same transport as the live run; installing it twice is harmless).
+  await installResilientFetch({ rpcUrl: studionet?.rpcUrls?.default?.http?.[0], log: (m) => console.log(`  ${m}`) });
+  const { waitDecided } = makePoller({ now: Date.now, sleep: (ms) => new Promise((r) => setTimeout(r, ms)) });
   const account = sdk.createAccount(key);
   const client = sdk.createClient({ chain: studionet, account });
   const code = new Uint8Array(readFileSync(new URL("../contracts/matchplay.py", import.meta.url)));
   console.log(`Deploying from ${account.address} ...`);
   const hash = await client.deployContract({ code, args: [] });
-  const opts = { hash, retries: 200, interval: 3000 };
-  const receipt =
-    typeof client.waitForDecision === "function"
-      ? await client.waitForDecision(opts)
-      : await client.waitForTransactionReceipt({ ...opts, status: "ACCEPTED" });
+  const receipt = await waitDecided(client, hash);
   const out = outcome(receipt);
   if (!out.known) console.log(`note: the receipt has no readable result (${out.status}); continuing to look for the contract address.`);
   if (out.known && !out.ok) throw new Error(`Deployment was decided as ${out.status}`);

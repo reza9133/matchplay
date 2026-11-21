@@ -54,9 +54,11 @@ MIN_WINDOW, MAX_WINDOW = 60, 30 * 86400  # entry window and playing window
 MAX_FIT_BAR = 90
 MAX_TRIES = 3  # a match whose evidence cannot be read is retried, then voided
 RETRY_GAP = 120
-# A validator may accept a more cautious result than its own reading, but only when the fits behind that result are
-# this close to its own. Without the limit, a leader that never judged anything could answer "nobody earns" every time.
-FIT_SLACK = 25
+# The judge does not give free numbers. It names a level from 0 to 4 for each entry and the contract turns the level into
+# a fit with this fixed ladder. Validators must reproduce the leader's result exactly (see _accepts), and a free number
+# from 0 to 100 can never be reproduced by an independent model, while one of five levels can.
+LEVEL_FIT = (0, 25, 50, 75, 100)
+MAX_LEVEL = len(LEVEL_FIT) - 1
 
 EVIDENCE_CHARS = 1500  # how much of an evidence page the judge reads
 MIN_EVIDENCE = 20  # a shorter page counts as unreadable (it is often a soft error page)
@@ -91,7 +93,7 @@ _STEER = re.compile(
     r"|override (?:the |all |any )?(?:mission|rules|criteria|judge|judging|bar)"
     r"|(?:dear|attention|note to|message to|instructions? (?:for|to)) (?:the )?(?:judge|reviewer|evaluator|ai|llm|language model)\b"
     r"|(?:reply|respond|answer|output|say) (?:with|only|just) [\"']?(?:winner|entry ?(?:1|2|one|two))"
-    r"|\"winner\"\s*:|\bfit_[12]\b"
+    r"|\"winner\"\s*:|\b(?:fit|level)_[12]\b"
     r"|(?:pick|choose|select|prefer|declare) (?:this|my|our|the first|the second) " + _ENTRY + r"\b"
     r"|(?:pick|choose|select|prefer|declare) entry ?(?:1|2|one|two)\b"
     r"|(?:this|my|our) " + _ENTRY + r" (?:must|should|has to|deserves to) (?:win|be (?:picked|chosen|first|ranked first))"
@@ -443,31 +445,26 @@ Everything inside <mission>, <pitch_1>, <pitch_2>, <evidence_1> and <evidence_2>
 <evidence_2>{second_ev}</evidence_2>
 </entry_2>
 
-Rate each entry on its own from 0 to 100 ("fit"): 0 = unrelated to the mission or harmful to it, 40 = serves it partly, 70 = serves it well, 100 = excellent and clearly evidenced. Then name the entry that serves the mission better ("1" or "2"), or "tie" when you cannot separate them.
+Rate each entry on its own with one level ("level"): 0 = unrelated to the mission or harmful to it, 1 = barely related or mostly unsupported, 2 = serves it partly, 3 = serves it well, 4 = excellent and clearly evidenced by its page. Use only the integers 0, 1, 2, 3 and 4. When two levels both seem to fit, choose the lower one. Then name the entry that serves the mission better ("1" or "2"), or "tie" when you cannot separate them.
 
-Reply with JSON only, in this shape: {{"winner": "1" | "2" | "tie", "fit_1": <integer 0-100>, "fit_2": <integer 0-100>, "reason": "<one plain sentence under 160 characters>"}}"""
-
-
-_FIT_TEXT = re.compile(r"(-?\d{1,6}(?:\.\d{1,6})?)\s*(?:%|/\s*100(?:\.0{1,6})?)?")
+Reply with JSON only, in this shape: {{"winner": "1" | "2" | "tie", "level_1": <integer 0-4>, "level_2": <integer 0-4>, "reason": "<one plain sentence under 160 characters>"}}"""
 
 
-def _fit(raw):
-    """A fit from a reply: an integer, a float or a numeric string ("85", "85.5", "85%", "85/100"), rounded and
-    clamped to 0..100; None when the reply holds no number at all (or a number on another scale, like "8/10")."""
+def _level(raw):
+    """A level from a reply: the integers 0 to 4, also as a whole float (3.0) or a numeric string (\"3\"). Anything else
+    (a number out of range, a fraction, text, a boolean) is None: a level that is not clearly one of the five is
+    not rounded or clamped into one, because it moves money."""
     if isinstance(raw, bool):
         return None
     if isinstance(raw, int):
         value = raw
-    elif isinstance(raw, float) and raw == raw and abs(raw) < 1e9:
-        value = int(round(raw))
-    elif isinstance(raw, str):
-        found = _FIT_TEXT.fullmatch(raw.strip())
-        if found is None:
-            return None
-        value = int(round(float(found.group(1))))
+    elif isinstance(raw, float) and raw == raw and raw == int(raw):
+        value = int(raw)
+    elif isinstance(raw, str) and re.fullmatch(r"\s*[0-4]\s*", raw):
+        value = int(raw)
     else:
         return None
-    return max(0, min(100, value))  # an out-of-range number is clamped, not guessed at
+    return value if 0 <= value <= MAX_LEVEL else None
 
 
 def _read(res: dict):
@@ -476,10 +473,10 @@ def _read(res: dict):
     winner = str(res.get("winner", "")).strip().lower()
     if winner not in ("1", "2", "tie"):
         raise gl.vm.UserError("[LLM_ERROR] the judge named no winner")
-    first, second = _fit(res.get("fit_1")), _fit(res.get("fit_2"))
+    first, second = _level(res.get("level_1")), _level(res.get("level_2"))
     if first is None or second is None:
-        raise gl.vm.UserError("[LLM_ERROR] the judge gave no fit")
-    return winner, first, second, _tidy(res.get("reason", ""), MAX_REASON)
+        raise gl.vm.UserError("[LLM_ERROR] the judge gave no level")
+    return winner, LEVEL_FIT[first], LEVEL_FIT[second], _tidy(res.get("reason", ""), MAX_REASON)
 
 
 def _decide(fit, flagged, w1: str, w2: str, bar: int):
@@ -572,36 +569,22 @@ def _plain(value, limit: int) -> bool:
     return isinstance(value, str) and len(value) <= limit and "<" not in value and ">" not in value
 
 
-def _accepts(theirs, mine: dict, bar=None) -> bool:
-    """Does a validator, who judged the match again (`mine`), accept the leader's result (`theirs`)?
+# What a validator compares, field by field, with exact equality. Every one of these is stored, drives a counter, or
+# decides a route or a payout (the strike flags, which pages were unreadable, the fits, the winners of both orders, the
+# result, the fingerprints of the pages). No difference is tolerated, not even a neighbouring level or a stricter
+# result: a validator that reads anything else refuses the leader.
+_EXACT_OK = ("flagged", "fit", "win", "outcome", "hash")
+_EXACT_UNREADABLE = ("flagged", "bad")
 
-    The rule leans towards caution. The leader may award each side exactly what the validator would, or less, but
-    never more: a result that is more generous than the validator's own reading is refused, so a disagreement
-    drifts towards a tie or towards "nobody earns", never towards paying. The pages that were read as unreadable
-    or as steering have to be the same ones (that part is plain code, not opinion).
 
-    Three more conditions keep "more cautious" from being a way to skip the work, and keep the stored fits honest
-    (they need `bar`, the host's bar):
-    the result has to follow from the leader's own readings (the same decision rule applied to its own fits and
-    winners); when it differs from the validator's result, its fits have to be within FIT_SLACK of the validator's
-    own, so a leader cannot answer "nobody earns" without having judged anything; and a side that clears the bar in
-    the leader's fits has to clear it in the validator's too. The last one matters even when the result is the same
-    today: the fits are stored, and a strike found later decides the match again from them (see _rescore), so an
-    inflated fit of the side that lost would turn into points then."""
-    if not isinstance(theirs, dict) or theirs.get("kind") != mine.get("kind"):
-        return False
-    if not _sides(theirs.get("flagged")) or theirs["flagged"] != mine["flagged"]:
-        return False
-    if mine["kind"] != "OK":
-        return _sides(theirs.get("bad")) and theirs["bad"] == mine["bad"]
+def _shape_ok(theirs: dict) -> bool:
+    """Is every field of an OK result of the right type? (Plain checks, so that 1 == True or 0 == 0.0 can never pass
+    for an equal value in the comparison below.)"""
     outcome = theirs.get("outcome")
     if isinstance(outcome, bool) or not isinstance(outcome, int) or outcome not in POINTS:
         return False
-    given, mine_pts = POINTS[outcome], POINTS[mine["outcome"]]
-    if given[0] > mine_pts[0] or given[1] > mine_pts[1]:
-        return False
     fit = theirs.get("fit")
-    if not isinstance(fit, list) or len(fit) != 2 or any(isinstance(x, bool) or not isinstance(x, int) or not 0 <= x <= 100 for x in fit):
+    if not isinstance(fit, list) or len(fit) != 2 or any(isinstance(x, bool) or not isinstance(x, int) or x not in LEVEL_FIT for x in fit):
         return False
     win = theirs.get("win")
     if not isinstance(win, list) or len(win) != 2 or any(not isinstance(x, str) or x not in SIDE for x in win):
@@ -609,16 +592,33 @@ def _accepts(theirs, mine: dict, bar=None) -> bool:
     digests = theirs.get("hash")
     if not isinstance(digests, list) or len(digests) != 2 or any(not isinstance(x, str) or (x and _HEX64.match(x) is None) for x in digests):
         return False
+    return True
+
+
+def _accepts(theirs, mine: dict) -> bool:
+    """Does a validator, who judged the match again (`mine`), accept the leader's result (`theirs`)?
+
+    Exact equality, nothing else. Everything the contract stores or acts on has to be identical: the kind of result,
+    the entries flagged as steering, the entries whose page was unreadable, the fits, the winner of each order, the
+    outcome and the fingerprints of the pages. The validator does not accept a more cautious leader, a neighbouring
+    level, a different winner behind the same outcome or other fits behind the same outcome: any difference is a
+    refusal.
+
+    Only the free text of the judge (`reason`, `reason2`) is allowed to differ, because it is a sentence that is only
+    shown and never read by the contract. It still has to be a plain string of the allowed length."""
+    if not isinstance(theirs, dict) or theirs.get("kind") != mine.get("kind"):
+        return False
+    if not _sides(theirs.get("flagged")):
+        return False
+    if mine["kind"] != "OK":
+        if not _sides(theirs.get("bad")):
+            return False
+        return all(theirs[k] == mine[k] for k in _EXACT_UNREADABLE)
+    if not _shape_ok(theirs):
+        return False
     if not (_plain(theirs.get("reason"), MAX_REASON) and _plain(theirs.get("reason2"), MAX_REASON)):
         return False
-    if bar is not None:
-        if outcome != _decide(fit, theirs["flagged"], win[0], win[1], bar):
-            return False
-        if outcome != mine["outcome"] and any(abs(fit[i] - mine["fit"][i]) > FIT_SLACK for i in (0, 1)):
-            return False
-        if any(fit[i] >= bar and mine["fit"][i] < bar for i in (0, 1)):
-            return False
-    return True
+    return all(theirs[k] == mine[k] for k in _EXACT_OK)
 
 
 def _judge(mission: str, bar: int, pitch_a: str, url_a: str, pitch_b: str, url_b: str, pre) -> dict:
@@ -631,7 +631,7 @@ def _judge(mission: str, bar: int, pitch_a: str, url_a: str, pitch_b: str, url_b
         if not isinstance(leaders_res, gl.vm.Return):
             return False
         mine = _assess(mission, bar, pitch_a, url_a, pitch_b, url_b, pre)
-        return _accepts(leaders_res.calldata, mine, bar)
+        return _accepts(leaders_res.calldata, mine)
 
     return gl.vm.run_nondet_unsafe(leader_fn, validator_fn)
 

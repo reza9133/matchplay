@@ -11,6 +11,9 @@ if (existsSync(envUrl) && /^HOST_KEY=0x[0-9a-fA-F]{64}/m.test(readFileSync(envUr
 const sdk = await import("genlayer-js");
 const { studionet } = await import("genlayer-js/chains");
 const RPC = studionet?.rpcUrls?.default?.http?.[0];
+// Funding goes through fetch like everything else: a rate limit is waited out and a gateway page retried.
+const { installResilientFetch } = await import("./rpc.mjs");
+await installResilientFetch({ rpcUrl: RPC, log: (m) => console.log(`  ${m}`) });
 
 const names = ["HOST_KEY", "ALICE_KEY", "BOB_KEY", "CAROL_KEY", "DAVE_KEY"];
 const keys = Object.fromEntries(names.map((n) => [n, "0x" + randomBytes(32).toString("hex")]));

@@ -11,6 +11,11 @@ What is simulated, and how it can be changed from the environment:
                     flaky:  honest, but a transaction fails now and then before the model answers
   * the web         a few fixed pages; the echo page repeats the query string; the "missing" page is a 404
   * the chain       transfers arrive at once, or FINALITY_DELAY chain-seconds after the transaction
+  * refused value   KEEP_VALUE_ON_ERROR=1 (default): a payable call that the contract refuses leaves its value in the
+                    contract's balance, outside the books, as the live run on Studionet showed (the call is decided as
+                    ACCEPTED / ERROR, its state changes are undone, the money stays). KEEP_VALUE_ON_ERROR=0 returns it.
+STRAY_AT_START=<wei> starts the contract with that much already held beyond its books, as a deployment that earlier runs used.
+The network faults (rate limit, HTML pages, dropped connections) live in the node, rehearsal/stub/node_modules/genlayer-js/backend.js.
 """
 
 import json
@@ -31,6 +36,7 @@ _STDIN = os.fdopen(os.dup(0), "r")
 MARK = "@@RPC "
 JUDGE = os.environ.get("JUDGE", "honest")
 FINALITY_DELAY = int(os.environ.get("FINALITY_DELAY", "0"))
+KEEP_VALUE_ON_ERROR = os.environ.get("KEEP_VALUE_ON_ERROR", "1") != "0"
 CONTRACT_ADDRESS = os.environ.get("MATCHPLAY_ADDRESS", "0x" + "ab" * 20).lower()
 START_FUNDS = 1000 * GEN
 
@@ -90,15 +96,16 @@ class Judge(Model):
             found = list(p.finditer(prompt))
             texts.append(found[-1].group(1) if found else "")
         f1, f2 = score(texts[0]), score(texts[1])
+        l1, l2 = min(4, (f1 + 12) // 25), min(4, (f2 + 12) // 25)  # the judge names a level 0 to 4, never a free number
         if self.mode == "biased":
-            return {"winner": "1", "fit_1": f1, "fit_2": f2, "reason": "The first entry reads better."}
+            return {"winner": "1", "level_1": l1, "level_2": l2, "reason": "The first entry reads better."}
         if self.mode == "noisy":
             return {
-                "winner": self.rng.choice(["1", "2", "tie"]), "fit_1": self.rng.randint(0, 100), "fit_2": self.rng.randint(0, 100),
+                "winner": self.rng.choice(["1", "2", "tie"]), "level_1": self.rng.randint(0, 4), "level_2": self.rng.randint(0, 4),
                 "reason": "A guess.",
             }
         winner = "tie" if abs(f1 - f2) <= 4 else ("1" if f1 > f2 else "2")
-        return {"winner": winner, "fit_1": f1, "fit_2": f2, "reason": "The entry that uses the mission's own terms serves it better."}
+        return {"winner": winner, "level_1": l1, "level_2": l2, "reason": "The entry that uses the mission's own terms serves it better."}
 
 
 class RehearsalWeb(Web):
@@ -166,6 +173,9 @@ def test_serve(direct_vm, direct_deploy, monkeypatch):
                 conftest.Chain._deliver(hx(self.who), amount)
 
     h.mod._Wire = DelayedWire
+    stray = int(os.environ.get("STRAY_AT_START", "0"))
+    if stray:
+        Chain.deposit(stray)  # money that earlier runs left in the contract, outside its books (wei)
     out({"ready": True})
     for line in _STDIN:
         line = line.strip()
@@ -211,4 +221,9 @@ def test_serve(direct_vm, direct_deploy, monkeypatch):
                 out({"id": rid, "ok": False, "error": f"unknown op {op}"})
         except Exception as e:  # a refusal by the contract
             vm.value = 0
+            kept = int(req.get("value") or 0) if req.get("op") == "call" else 0
+            if kept and KEEP_VALUE_ON_ERROR:
+                # the state changes were undone, the money was not: it stays in the contract and the sender has spent it
+                Chain.deposit(kept)
+                net.spent[req["sender"].lower()] = net.spent.get(req["sender"].lower(), 0) + kept
             out({"id": rid, "ok": False, "error": f"{type(e).__name__}: {e}"[:400]})

@@ -18,13 +18,13 @@ a small deterministic shell with the model in one narrow slot.
 | Problem | What the contract does |
 | --- | --- |
 | A model that favours "the first answer" or "the second answer" (or a pitch that asks for it) | Every match is judged **twice, with the entries swapped**. When both entries clear the bar, an entry only wins when it wins in both orders; otherwise the match is a tie. Position bias alone can never decide a match. |
-| Paying for the best of a bad lot | Each entry is also scored **on its own** (0 to 100). It earns from a match only if the lower of its two scores reaches the host's **bar**. A match between two entries that miss the bar pays nobody. |
+| Paying for the best of a bad lot | Each entry is also rated **on its own** with one of five levels (fits 0, 25, 50, 75, 100). It earns from a match only if the lower of its two scores reaches the host's **bar**. A match between two entries that miss the bar pays nobody. |
 | A model that is wrong once | A match is worth exactly two points. Nobody can earn more than two points per rival, so one wrong verdict moves one match, never the round. |
 | Prices that move while people play | The price of a point (`prize / (2 * matches)`) is **fixed when the round starts**. The prize can only grow while the round is open. |
 | Money the host never meant to give away | What was not earned (unplayed matches, no-points matches, rounding dust, forfeited bonds) is credited back to the host. |
 | Pitches and evidence pages that talk to the judge | A narrow tripwire, which also reads full-width, styled and invisible-character spellings, turns a steering pitch away at the door and flags a steering page. A flagged entry earns nothing in the **whole round**, also in the matches that were judged before the strike was found (they are decided again). Its page is not read again, so it cannot take points from rivals later, and its bond goes to the host. |
 | Pages that do not load | The match is retried (two minutes apart), and after three tries it is **voided**: nobody earns from it. The entry is not punished. |
-| A leader that is more generous, or lazier, than the truth | Validators judge the match again and accept the leader's result only if it gives each side **no more** than their own reading (also after a strike found later), it follows from the leader's own fits, and, when it differs from theirs, its fits are close to theirs. Disagreements drift towards "tie" and "nobody earns", never towards paying, and a leader cannot answer "nobody earns" without having judged. |
+| A leader that is more generous, or lazier, than the truth | Validators judge the match again and accept the leader's result only when everything the contract stores or pays on is **exactly equal** to their own reading: the strike flags, the unreadable pages, the fits, the winner of each order, the outcome and the page fingerprints. No neighbouring level and no stricter or more cautious result is accepted; only the free-text reasons may differ. A disagreement means no consensus and another leader, never a payment that one reading did not support. |
 | Copies and empty pitches | A pitch is compared by its letters and digits in any script (spacing, punctuation, case and width do not disguise a copy) and needs at least 20 of them, so symbols or emoji alone are not a pitch. |
 | Nobody runs the matches | Anyone can run the next match. When the playing time ends, unplayed matches count as "nobody earns", and the round can be finalized by anyone. |
 | Transfers that go wrong | State changes only credit a ledger. Money leaves in one place (`claim`). The books (`solvency`, `audit_books`) can always be checked against the contract's own balance. |
@@ -82,10 +82,13 @@ a small deterministic shell with the model in one narrow slot.
 
 ### How one match is decided
 
-Reading 1 shows (A, B), reading 2 shows (B, A). Each reading returns a winner (`1`, `2` or `tie`) and a fit for both
-entries. The fit of an entry is the **lower** of its two readings. A fit may be written as `85`, `85.5`, `85%` or
-`85/100`; it is rounded and kept within 0 to 100. A reply with no winner or no fit is a model failure: the call fails,
-nothing changes, and anyone can ask again.
+Reading 1 shows (A, B), reading 2 shows (B, A). Each reading returns a winner (`1`, `2` or `tie`) and a **level** from 0 to 4 for
+both entries (0 unrelated or harmful, 1 barely related or unsupported, 2 partly, 3 well, 4 excellent and clearly
+evidenced). The contract turns a level into a fit with a fixed ladder (`LEVEL_FIT`: 0, 25, 50, 75, 100), so the bar
+`min_fit` is compared with one of those five values. The fit of an entry is the **lower** of its two readings. A level
+may be an integer or a digit string; anything else (5, 2.5, `85%`, text) is a model failure: the call fails, nothing is
+rounded or clamped, nothing changes, and anyone can ask again. Free numbers from 0 to 100 are not used, because an
+independent validator model can reproduce one of five levels but not an arbitrary integer.
 
 1. An entry **clears the bar** when its fit is at least `min_fit` and it is not flagged.
 2. Neither clears: **nobody earns** (0 - 0).
@@ -107,19 +110,22 @@ the new result, and `review.rescored` shows `was` (the old result), `flagged` (w
 ### How validators check a match
 
 Every validator reads the same pages, asks the model the same two questions and compares its own result with the
-leader's. It accepts only when all of this holds:
+leader's. It accepts only on **exact equality** of every field the contract stores, counts, or pays on:
 
-1. the same pages were found unreadable or steering (plain code, not opinion);
-2. the leader's result is well formed (fits 0 to 100, winners `A`, `B` or `T`, plain short reasons, hex digests);
-3. the leader's outcome follows from the leader's own fits, winners and the host's bar;
-4. the leader gives each side **no more** points than the validator would, and a side that clears the bar in the
-   leader's fits also clears it in the validator's own. The fits are stored and decide the match again if a strike is
-   found later (see above), so they must not be more generous than an honest reading either, even when the result is the
-   same today;
-5. when the two outcomes differ, each of the leader's fits is within 25 points of the validator's own.
+1. `kind` (a result or an unreadable page) and `flagged` (which entries were found steering);
+2. `bad` (which pages were unreadable), for an unreadable result;
+3. `fit` (both entries), `win` (the winner of each order), `outcome` and `hash` (the page fingerprints), for a result.
 
-The last condition is what stops a leader from answering "nobody earns" every time without judging anything. A validator
-whose own model call fails raises an error instead of voting.
+There is no tolerance: a neighbouring level, a more cautious leader, a different winner behind the same outcome or
+other fits behind the same outcome are all refused. The leader's result must also be well formed (types and ranges;
+fits only on the ladder). The one thing that may differ is the free text of the judge, `reason` and `reason2`; it must
+still be a plain string of at most 160 characters with no angle brackets. A validator whose own model call fails
+raises an error instead of voting.
+
+Consequence: consensus now needs independent models to land on the same levels and winners. The five-level rubric,
+the "choose the lower level when torn" instruction and the order swap are there to make that realistic. When the
+validators do not agree, that round of voting does not settle and another leader is tried; nothing is paid on a result
+that an honest reading did not reproduce.
 
 ### Where the money goes
 
@@ -175,6 +181,14 @@ A match record carries `outcome` (`0` A wins, `1` B wins, `2` tie, `3` nobody ea
 
 Every refusal is a plain sentence ("The round is full.", "Attach exactly the entry bond.", ...). A refused call
 changes nothing: all checks run before the first state change, and the tests verify it for every refusal.
+
+**Money attached to a refused payable call is not sent back.** A refused call undoes its state changes, but on Studionet
+the value that came with a payable call stays in the contract's balance: the call is decided `ACCEPTED / ERROR`, `deposited`
+does not move, and nothing is credited, so the money sits outside the books where `claim()` cannot reach it. The live run
+(`scripts/e2e.mjs`) measured it: the value attached to the refused payable calls of its `adversarial` scenario was exactly the
+difference between the contract's balance and its books, and the run's balance check accounts for it. So a front end should
+check a payable call against the same limits as the contract (bond, prize, name, pitch, link rules; `would_steer` previews
+the tripwire) before it attaches money.
 
 ## Quick start
 
@@ -247,12 +261,12 @@ web are scripted; the contract code is the real one.
 | File | Covers |
 | --- | --- |
 | `test_smoke.py` | the contract deploys and one whole round runs, is claimed and balances |
-| `test_text.py` | cleaning, Unicode folding (full-width, styled, invisible and look-alike text), the tripwire (hits and ordinary text that must not hit), pitch identity in any script, links, fit formats, page-to-text including hostile pages, the schedule, the full decision table, the validator acceptance rule (with a randomized check that an accepted result is never more generous, not even after a later strike) |
+| `test_text.py` | cleaning, Unicode folding (full-width, styled, invisible and look-alike text), the tripwire (hits and ordinary text that must not hit), pitch identity in any script, links, level parsing, page-to-text including hostile pages, the schedule, the full decision table, the exact-equality acceptance rule (with a randomized check over pairs of results) |
 | `test_rounds.py` | opening, topping up, entering (also with non-Latin, copied or symbol-only pitches), withdrawing, removing, starting, cancelling; every validation edge; paging |
 | `test_play.py` | what a match turns into, position bias, the bar, steering pages, strikes found late (earlier matches are decided again), unreadable pages and retries, unusable model output, the prompt, timeouts, exact payout arithmetic, an eight-entry round of 28 matches |
 | `test_strikes.py` | 48 random rounds in which pages start to steer at random moments; every match must end as if the flagged entries had been flagged from the start, checked against a separate computation of the rules, together with points, payouts and credits |
 | `test_money.py` | claims, conservation of every wei, delayed transfers, refunds, odd amounts, huge prizes |
-| `test_consensus.py` | the closures sent to the network are serializable and capture plain values only; honest validators agree; a more generous, lazy, incoherent or different leader is refused, also one that lifts a losing fit over the bar; the 25-point slack to the exact edge |
+| `test_consensus.py` | the closures sent to the network are serializable and capture plain values only; honest validators agree; exact equality of every stored field: a more generous, more cautious, lazy, incoherent or different leader is refused, also one that moves a single fit by one level; only the free-text reasons may differ |
 | `test_adversarial.py` | a permission matrix (every call, every kind of caller, every state: 168 combinations), steering text in plain and dressed-up spellings (at the door and on pages), hostile pages, ordering and replay, sybils and squatters, bounded damage |
 | `test_fuzz.py` | 14 random walks over the whole interface; after every call the books, round states, chain money and the strike rule are checked, and a refused call must change nothing |
 
@@ -286,7 +300,7 @@ web are scripted; the contract code is the real one.
 * `remove_entry` needs a reason, but the contract does not keep it; it can be read from the transaction.
 * The round size is capped at eight entries so that a full round (28 matches) can be played in a reasonable time.
 * Studionet is a test network. Before using the contract elsewhere, review the validators' tolerance (the
-  "never more generous" rule and the 25-point slack), the prompt against the validators' real models and the minimum amounts.
+  exact-equality rule), the prompt against the validators' real models and the minimum amounts.
 
 ## Layout
 

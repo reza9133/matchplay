@@ -277,6 +277,11 @@ class Model:
             m = _Q.search(pitch or "")
         return int(m.group(1)) if m else 60
 
+    @staticmethod
+    def level(q: int) -> int:
+        """The nearest rung of the ladder 0, 25, 50, 75, 100 (the judge names a level 0 to 4, never a free number)."""
+        return min(4, (q + 12) // 25)
+
     def answer(self, prompt: str):
         self.prompts.append(prompt)
         if self.fail is not None:
@@ -297,7 +302,7 @@ class Model:
             winner = "tie"
         else:
             winner = "1" if q1 > q2 else "2"
-        return {"winner": winner, "fit_1": q1, "fit_2": q2, "reason": self.reason}
+        return {"winner": winner, "level_1": self.level(q1), "level_2": self.level(q2), "reason": self.reason}
 
     def handler(self, data):
         return {"ok": self.answer(data.get("prompt", ""))}

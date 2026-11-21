@@ -8,7 +8,7 @@
 cd "$(dirname "$0")/.." || exit 1
 mkdir -p reports
 STAMP="$(date -u +%Y-%m-%dT%H-%M-%S)"
-LOCAL_STATUS="skipped"; LIVE_STATUS="skipped"; LINT_STATUS="skipped"
+LOCAL_STATUS="skipped"; LIVE_STATUS="skipped"; LINT_STATUS="skipped"; HARNESS_STATUS="skipped"
 
 if [ -f .env ]; then
   set -a
@@ -23,6 +23,17 @@ if [ "${SKIP_LOCAL:-0}" != "1" ]; then
     if genvm-lint check contracts/matchplay.py; then LINT_STATUS="passed"; else LINT_STATUS="FAILED"; fi
   else
     echo "genvm-lint is not installed (run: bash scripts/setup.sh)"; LINT_STATUS="not installed"
+  fi
+
+  echo; echo "== unit tests of the live-run scripts (no network)"
+  if command -v node >/dev/null 2>&1; then
+    if node --test scripts/rpc.test.mjs scripts/harness.test.mjs >"reports/harness-tests-$STAMP.log" 2>&1; then
+      HARNESS_STATUS="passed"; grep -E "^# (tests|pass|fail)" "reports/harness-tests-$STAMP.log"
+    else
+      HARNESS_STATUS="FAILED"; tail -40 "reports/harness-tests-$STAMP.log"
+    fi
+  else
+    echo "node is not installed"; HARNESS_STATUS="not run (no node)"
   fi
 
   echo; echo "== local test suite (no network)"
@@ -48,8 +59,9 @@ SUMMARY="reports/summary-$STAMP.md"
   echo "- time (UTC): $STAMP"
   echo "- static check: $LINT_STATUS"
   echo "- local tests: $LOCAL_STATUS (junit: reports/local-tests-$STAMP.xml)"
+  echo "- live-run script tests: $HARNESS_STATUS"
   echo "- live Studionet run: $LIVE_STATUS (latest report: $(ls -t reports/matchplay-e2e-*.html 2>/dev/null | head -1))"
 } > "$SUMMARY"
 echo; echo "== summary"; cat "$SUMMARY"
-case "$LINT_STATUS$LOCAL_STATUS$LIVE_STATUS" in *FAILED*) exit 1 ;; esac
+case "$LINT_STATUS$LOCAL_STATUS$HARNESS_STATUS$LIVE_STATUS" in *FAILED*) exit 1 ;; esac
 exit 0

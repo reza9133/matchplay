@@ -52,7 +52,7 @@ def test_a_clearly_better_entry_wins_in_both_orders(h):
     h.play(rid, offset=100)
     m = h.match(rid, 0)
     assert (m["state"], m["outcome"], m["by"]) == (M_PLAYED, A_WINS, BY_JUDGE)
-    assert m["review"]["fit"] == [90, 70] and m["review"]["win"] == ["A", "A"] and m["review"]["flagged"] == [0, 0]
+    assert m["review"]["fit"] == [100, 75] and m["review"]["win"] == ["A", "A"] and m["review"]["flagged"] == [0, 0]
     assert len(h.model.prompts) == 2  # one reading per order
     assert h.rnd(rid)["next_match"] == 1 and h.rnd(rid)["judged"] == 1
 
@@ -109,10 +109,10 @@ def test_only_the_entry_that_clears_the_bar_earns(h):
 
 
 def test_the_bar_decides_when_only_one_entry_clears_it(h):
-    """Only B clears the bar (A is rated 50, B 80, the bar is 60)."""
+    """Only B clears the bar (A is level 2 = 50, B level 3 = 75, the bar is 60)."""
     h.model.script = [
-        {"winner": "2", "fit_1": 50, "fit_2": 80, "reason": "b"},
-        {"winner": "1", "fit_1": 80, "fit_2": 50, "reason": "b"},
+        {"winner": "2", "level_1": 2, "level_2": 3, "reason": "b"},
+        {"winner": "1", "level_1": 3, "level_2": 2, "reason": "b"},
     ]
     rid = go(h, [60, 60, 60], min_fit=60)
     h.play(rid, offset=100)
@@ -121,13 +121,13 @@ def test_the_bar_decides_when_only_one_entry_clears_it(h):
 
 def test_the_lower_of_the_two_fits_counts(h):
     h.model.script = [
-        {"winner": "1", "fit_1": 90, "fit_2": 10, "reason": "a"},
-        {"winner": "2", "fit_1": 10, "fit_2": 30, "reason": "a"},  # A is rated 30 in this order
+        {"winner": "1", "level_1": 4, "level_2": 0, "reason": "a"},
+        {"winner": "2", "level_1": 0, "level_2": 1, "reason": "a"},  # A is level 1 (25) in this order
     ]
     rid = go(h, [60, 60, 60], min_fit=40)
     h.play(rid, offset=100)
     m = h.match(rid, 0)
-    assert m["review"]["fit"] == [30, 10] and m["outcome"] == NEITHER
+    assert m["review"]["fit"] == [25, 0] and m["outcome"] == NEITHER
 
 
 def test_no_bar_means_everyone_who_is_not_flagged_may_win(h):
@@ -183,7 +183,7 @@ def test_evidence_text_reaches_the_judge_and_a_hash_is_kept(h):
     rid = go(h, [10, 10, 10], urls=[EVIDENCE_A, EVIDENCE_B, EVIDENCE_C])
     h.play(rid, offset=100)
     m = h.match(rid, 0)
-    assert m["outcome"] == A_WINS and m["review"]["fit"] == [95, 20]
+    assert m["outcome"] == A_WINS and m["review"]["fit"] == [100, 25]
     assert "traces any quote back" in h.model.prompts[0] and "promises features" in h.model.prompts[0]
     assert all(len(x) == 64 for x in m["review"]["hash"])
 
@@ -298,7 +298,7 @@ def test_a_late_strike_counts_for_the_matches_played_before_it(h):
     m0, m1 = h.match(rid, 0), h.match(rid, 1)
     assert m0["outcome"] == B_WINS  # B clears the bar (80 against 30) and A cannot
     assert m0["review"]["outcome"] == B_WINS and m0["review"]["rescored"] == {"was": A_WINS, "flagged": [1, 0], "at": T0 + 101}
-    assert m0["review"]["fit"] == [95, 80] and m0["review"]["win"] == ["A", "A"]  # what the judge said is kept
+    assert m0["review"]["fit"] == [100, 75] and m0["review"]["win"] == ["A", "A"]  # what the judge said is kept
     assert (m0["state"], m0["by"]) == (M_PLAYED, BY_JUDGE)
     assert m1["outcome"] == B_WINS and "rescored" not in m1["review"]  # the match of the strike itself is decided once
     assert h.stats()["flagged"] == 1 and h.rnd(rid)["judged"] == 2
@@ -419,16 +419,17 @@ def test_the_reply_instruction_names_the_shape_without_values_to_copy(h):
     rid = go(h, [90, 70, 50])
     h.play(rid, offset=100)
     p = h.model.prompts[0]
-    assert '"winner": "1" | "2" | "tie"' in p and '"fit_1": <integer 0-100>' in p and '"fit_2": <integer 0-100>' in p
-    assert '"fit_1": 50' not in p and '"winner": "tie"' not in p  # a plausible example would be copied
+    assert '"winner": "1" | "2" | "tie"' in p and '"level_1": <integer 0-4>' in p and '"level_2": <integer 0-4>' in p
+    assert '"level_1": 2' not in p and '"winner": "tie"' not in p  # a plausible example would be copied
+    assert "fit_1" not in p and "0-100" not in p  # the judge names a level, never a free number
 
 
-def test_a_fit_written_as_a_percentage_or_out_of_a_hundred_is_understood(h):
-    h.model.raw = {"winner": "1", "fit_1": "85%", "fit_2": "40/100", "reason": "ok"}
+def test_a_level_written_as_a_string_is_understood(h):
+    h.model.raw = {"winner": "1", "level_1": "3", "level_2": " 1 ", "reason": "ok"}
     rid = go(h, [60, 60, 60])
     h.play(rid, offset=100)
     m = h.match(rid, 0)
-    assert m["by"] == BY_JUDGE and m["review"]["fit"] == [40, 40]  # reading 1 gave A 85 and B 40, reading 2 the other way
+    assert m["by"] == BY_JUDGE and m["review"]["fit"] == [25, 25]  # reading 1: A level 3, B level 1; reading 2 the other way
 
 
 # ---- unreadable pages -----------------------------------------------------------------------------------------------
@@ -522,8 +523,10 @@ def test_a_voided_match_does_not_block_the_rest(h):
 @pytest.mark.parametrize(
     "raw",
     [
-        "not json at all", "[1, 2, 3]", "{}", '{"winner": "3", "fit_1": 5, "fit_2": 5}', '{"winner": "1", "fit_1": 5}',
-        {"winner": "1", "fit_1": "high", "fit_2": 5}, {"winner": None, "fit_1": 5, "fit_2": 5}, 12, "",
+        "not json at all", "[1, 2, 3]", "{}", '{"winner": "3", "level_1": 2, "level_2": 2}', '{"winner": "1", "level_1": 2}',
+        {"winner": "1", "level_1": "high", "level_2": 2}, {"winner": None, "level_1": 2, "level_2": 2},
+        {"winner": "1", "level_1": 5, "level_2": 2}, {"winner": "1", "level_1": -1, "level_2": 2},
+        {"winner": "1", "level_1": 2.5, "level_2": 2}, {"winner": "1", "level_1": 85, "level_2": 40}, 12, "",
     ],
 )
 def test_an_unusable_model_answer_changes_nothing(h, raw):
@@ -577,23 +580,24 @@ def test_a_match_the_model_cannot_answer_stalls_the_schedule_but_the_round_still
 
 
 def test_a_json_answer_wrapped_in_a_code_fence_is_understood(h):
-    good = '{"winner": "1", "fit_1": 80, "fit_2": 20, "reason": "a"}'
-    flip = '{"winner": "2", "fit_1": 20, "fit_2": 80, "reason": "a"}'
+    good = '{"winner": "1", "level_1": 3, "level_2": 1, "reason": "a"}'
+    flip = '{"winner": "2", "level_1": 1, "level_2": 3, "reason": "a"}'
     h.model.script = ["```json\n" + good + "\n```", "Sure! " + flip + " Hope that helps."]
     rid = go(h, [60, 60, 60])
     h.play(rid, offset=100)
     assert h.match(rid, 0)["outcome"] == A_WINS
 
 
-def test_fractional_fits_are_rounded_and_out_of_range_fits_are_clamped(h):
+def test_the_fits_are_the_fixed_ladder_for_the_five_levels(h):
     h.model.script = [
-        {"winner": "1", "fit_1": "88.6", "fit_2": -4, "reason": "x"},
-        {"winner": "2", "fit_1": 0, "fit_2": 250, "reason": "x"},
+        {"winner": "1", "level_1": 4, "level_2": 0, "reason": "x"},
+        {"winner": "2", "level_1": 0, "level_2": 4, "reason": "x"},
     ]
     rid = go(h, [60, 60, 60], min_fit=0)
     h.play(rid, offset=100)
     m = h.match(rid, 0)
-    assert m["review"]["fit"] == [89, 0] and m["outcome"] == A_WINS
+    assert m["review"]["fit"] == [100, 0] and m["outcome"] == A_WINS
+    assert h.mod.LEVEL_FIT == (0, 25, 50, 75, 100)
 
 
 def test_a_long_or_hostile_reason_is_cut_and_cleaned(h):
@@ -605,7 +609,7 @@ def test_a_long_or_hostile_reason_is_cut_and_cleaned(h):
 
 
 def test_a_decisive_answer_without_a_reason_is_fine(h):
-    h.model.script = [{"winner": "1", "fit_1": 80, "fit_2": 20}, {"winner": "2", "fit_1": 20, "fit_2": 80}]
+    h.model.script = [{"winner": "1", "level_1": 3, "level_2": 1}, {"winner": "2", "level_1": 1, "level_2": 3}]
     rid = go(h, [60, 60, 60])
     h.play(rid, offset=100)
     assert h.match(rid, 0)["outcome"] == A_WINS and h.match(rid, 0)["review"]["reason"] == ""
