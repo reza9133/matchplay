@@ -1,0 +1,9 @@
+// The demo engine was written against a slightly different config shape; this maps it onto this app's config.js.
+import { CHAIN_ID, CONTRACT_ADDRESS, LIMITS as L } from "../../config.js";
+export const CONFIG = { chainId: CHAIN_ID, contract: CONTRACT_ADDRESS };
+export const RULES = {
+  MIN_POOL: L.MIN_POOL, MIN_BOND: L.MIN_BOND, MAX_AMOUNT: L.MAX_AMOUNT, MIN_ENTRIES: L.MIN_ENTRIES, MAX_ENTRIES: L.MAX_ENTRIES,
+  TITLE: [L.MIN_TITLE, L.MAX_TITLE], MISSION: [L.MIN_MISSION, L.MAX_MISSION], NAME: [L.MIN_NAME, L.MAX_NAME], PITCH: [L.MIN_PITCH, L.MAX_PITCH],
+  MIN_PITCH_LETTERS: L.MIN_PITCH_LETTERS, REASON: [3, L.MAX_REASON], MAX_URL: L.MAX_URL, WINDOW: [L.MIN_WINDOW, L.MAX_WINDOW],
+  MAX_BAR: L.MAX_FIT_BAR, RETRY_GAP: L.RETRY_GAP, MAX_TRIES: 3, LEVEL_FIT: L.LEVEL_FIT,
+};

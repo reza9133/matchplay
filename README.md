@@ -316,3 +316,11 @@ rehearsal/                  the offline stand-in for the network
 .devcontainer/              GitHub Codespaces setup
 reports/                    reports of live runs and of the local tests
 ```
+
+## Web front end
+
+The dApp lives in [`web/`](web/) (Vite + React + three.js, EIP-6963 wallets, GenLayer Studionet).
+
+```bash
+cd web && npm install && npm run dev     # npm run build -> web/dist
+```
