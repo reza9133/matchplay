@@ -7,8 +7,8 @@ import { guardSeeking, seekTo, whenReady } from "../lib/seek.js";
 import { Button, SectionTitle, Tilt } from "../components/UI.jsx";
 import { OrbitSpinner } from "../components/Spinners.jsx";
 
-// Chapter start times in seconds (the recording is 3:08).
-const CHAPTERS = [["Welcome", 0], ["Connect a wallet", 10], ["Switch to Studionet", 17], ["Browse the arena", 22], ["Enter a round", 31], ["Run the judge", 54], ["Results and claim", 111], ["Host a round", 134], ["The ledger", 151], ["Documentation", 160], ["Disconnect and wrap up", 174]];
+// Chapter start times in seconds (the recording is 2:56).
+const CHAPTERS = [["Welcome", 0], ["Connect a wallet", 10], ["Switch to Studionet", 16], ["Browse the arena", 22], ["Enter a round", 30], ["Run the judge", 50], ["Results and claim", 103], ["Host a round", 125], ["The ledger", 141], ["Documentation", 151], ["Disconnect and wrap up", 163]];
 const mm = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 const POSTER = "./demo/poster.jpg";
 
