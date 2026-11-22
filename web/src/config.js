@@ -12,7 +12,7 @@ export const CHAIN_ID = 61999;
 export const CHAIN_ID_HEX = "0xf22f";
 export const CHAIN_NAME = "GenLayer Studio Network";
 export const RPC_URL = "https://studio.genlayer.com/api";
-export const EXPLORER_URL = "https://genlayer-explorer.vercel.app";
+export const EXPLORER_URL = "https://explorer-studio.genlayer.com";
 
 // Demo video: drop an mp4 at public/demo/matchplay-demo.mp4, or point this at a YouTube / hosted link.
 export const DEMO_VIDEO_URL = import.meta.env?.VITE_DEMO_VIDEO_URL || "./demo/matchplay-demo.mp4";
